@@ -8,7 +8,7 @@ export default function Dashboard() {
         { circuito: "Circuito 2", voltaje: "110V", intensidad: "10A", consumo: "2kWh", costo: "$200" },
         { circuito: "Circuito 3", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
     ];
-    const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
+    // const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
   return (
     <div className="max-w-full p-2 grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
