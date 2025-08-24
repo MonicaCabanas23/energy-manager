@@ -1,9 +1,15 @@
-interface TableProps {
-    definition: { [key: string]: string; };
-    data: Array<{ [key: string]: any }>;
+import { JSX } from "react";
+
+interface TableProps<T extends Record<string, JSX.Element | string | number>> {
+    definition : { [key in keyof T]: string; };
+    data       : Array<T>;
 }
 
-export default function Table({ definition, data }: TableProps) {
+export default function Table<T extends Record<string, JSX.Element | string | number>>({
+    definition, 
+    data 
+}: TableProps<T>
+) {
     const renderHeaderColumns = () => {
         return Object.entries(definition).map(([key, value]) => (
             <th className="px-3 py-2 whitespace-nowrap" key={key}>{value}</th>
