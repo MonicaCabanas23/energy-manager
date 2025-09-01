@@ -1,21 +1,15 @@
-import Link from "next/link";
-import { auth0 } from "@/lib/auth0";
-import Menu from "./Menu";
-import { JSX } from "react";
+import Link                 from "next/link";
+import type { ILinkOption } from "@/types/components/layout/types";
+import ProfileBubble        from "./ProfileBubble";
+import HamburgerBubble      from "./HamburgerBubble";
+import { auth0 }            from "@/lib/auth0";
 
-interface LinkOption {
-  label: string;
-  href: string;
-  icon: JSX.Element;
-  classes?: string;
+interface Props {
+  links: Array<ILinkOption>;
 }
 
-interface HeaderProps {
-  links: Array<LinkOption>;
-}
-
-export default async function Header({links}: HeaderProps) {
-  // Fetch the user session
+export default async function Header({links}: Props) {
+  // Get the user session
   const session = await auth0.getSession();
 
   /**
@@ -23,11 +17,16 @@ export default async function Header({links}: HeaderProps) {
    * @returns JSX.Element
    */
   const renderLinks = () => {
-    return links.map((link, index) => (
-      <Link key={index} href={link.href} className="text-gray-500 transition hover:text-gray-500/75">
-        {link.label}
-      </Link>
-    ))
+    return links.map((link, index) => {
+      if(link.showInHeader) { // If showInHeader is true then render the link
+        return (
+          <Link key={index} href={link.href} className="text-gray-500 transition hover:text-gray-500/75">
+            {link.label}
+          </Link>
+        )
+      }
+    })
+    .filter(Boolean); // Remove any undefined/null values
   }
 
   /**
@@ -56,17 +55,25 @@ export default async function Header({links}: HeaderProps) {
     }
 
     return (
-      <Menu 
-        links={links}
-        pictureSrc={session?.user.picture || ''} 
-      />
+      <>
+        <ProfileBubble
+          pictureSrc={session?.user.picture || ''}
+          classes="hidden md:block"
+          links={links}
+        />
+        <HamburgerBubble 
+            pictureSrc={session?.user.picture || ''}
+            links={links}
+        />
+      </>
     )
   }
 
   return (
     <header className="bg-white">
-      <div className="mx-auto flex h-16 max-w-screen-xl items-center gap-8 px-4 sm:px-6 lg:px-8">
-        
+      <div className="flex h-16 items-center justify-between gap-8 px-4">
+
+        {/* Logo */}
         <a className="block text-teal-600" href="#">
           <span className="sr-only">Home</span>
           <svg className="h-8" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -78,14 +85,16 @@ export default async function Header({links}: HeaderProps) {
         </a>
 
         <div className="flex flex-1 items-center justify-end md:justify-between">
+          {/* Nav Options */}
           <nav aria-label="Global" className="hidden md:block">
             <ul className="flex items-center gap-6 text-sm">
-              {renderLinks()} 
+              { renderLinks() } 
             </ul>
           </nav>
 
+          {/* Profile Menu or Hamburger Menu or Buttons for Login/Register */}
           <div className="flex items-center gap-4">
-            {renderAuthenticationActions()}
+            { renderAuthenticationActions() }
           </div>
         </div>
       </div>

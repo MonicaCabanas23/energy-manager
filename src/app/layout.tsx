@@ -1,34 +1,80 @@
-import type { Metadata } from "next";
 import "./globals.css";
-import Header from "@/components/layout/Header/Header";
-import { MdHome } from "react-icons/md";
-import { MdDashboard } from "react-icons/md";
+import type { Metadata }   from "next";
+import Header              from "@/components/layout/Header/Header";
+import { MdHome }          from "react-icons/md";
+import { MdDashboard }     from "react-icons/md";
 import { PiCircuitryFill } from "react-icons/pi";
+import { BiLogOut }        from "react-icons/bi";
+import { SessionProvider } from "@/contexts/SessionContext";
+import { auth0 }           from "@/lib/auth0";
 
 export const metadata: Metadata = {
   title: "Administrador de energía",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  const session = await auth0.getSession();
+
   const links = [
-    { label: "Home"      , href: "/"         , icon: <MdHome /> },
-    { label: "Dashboard" , href: "/dashboard", icon: <MdDashboard /> },
-    { label: "Circuitos" , href: "/circuitos", icon: <PiCircuitryFill /> }
+    { 
+      code: 'home', 
+      label: "Home", 
+      href: "/", 
+      icon: <MdHome />,
+      showInHeader: true,
+      showInSidebar: true,
+      showInProfileMenu: false,
+      anchorTag: false
+    },
+    { 
+      code: 'dashboard',
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: <MdDashboard />,
+      showInHeader: true,
+      showInSidebar: true,
+      showInProfileMenu: false,
+      anchorTag: false
+    },
+    {
+      code: 'circuitos',
+      label: "Circuitos",
+      href: "/circuitos",
+      icon: <PiCircuitryFill />,
+      showInHeader: true,
+      showInSidebar: true,
+      showInProfileMenu: false,
+      anchorTag: false
+    },
+    {
+      code: 'logout',
+      label: "Cerrar sesión",
+      href: "/auth/logout",
+      icon: <BiLogOut />,
+      classes: 'text-red-500',
+      showInHeader: false,
+      showInSidebar: true,
+      showInProfileMenu: true,
+      anchorTag: true
+    },
   ]
 
   return (
     <html lang="es">
       <body>
-        <Header 
-          links={links}
-        />
-        <main className="bg-slate-100 max-w-screen" style={{ minHeight: "calc(100vh - 56px)" }}>
-          {children}
-        </main>
+        <SessionProvider value={session}>
+          <Header 
+            links={links}
+          />
+          <main className="bg-slate-100 max-w-screen" style={{ minHeight: "calc(100vh - 56px)" }}>
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
   );
