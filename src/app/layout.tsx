@@ -7,6 +7,16 @@ import { PiCircuitryFill } from "react-icons/pi";
 import { BiLogOut }        from "react-icons/bi";
 import { SessionProvider } from "@/contexts/SessionContext";
 import { auth0 }           from "@/lib/auth0";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
 export const metadata: Metadata = {
   title: "Administrador de energía",
@@ -19,6 +29,8 @@ export default async function RootLayout({
 }>) {
 
   const session = await auth0.getSession();
+
+  
 
   const links = [
     { 
@@ -71,7 +83,7 @@ export default async function RootLayout({
           <Header 
             links={links}
           />
-          <main className="bg-slate-100 max-w-screen" style={{ minHeight: "calc(100vh - 56px)" }}>
+          <main className="bg-gray-100 max-w-screen" style={{ minHeight: "calc(100vh - 56px)" }}>
             {children}
           </main>
         </SessionProvider>

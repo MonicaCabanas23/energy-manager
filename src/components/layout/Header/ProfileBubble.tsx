@@ -31,7 +31,6 @@ export default function ProfileBubble({pictureSrc, classes="", links=[], menuVis
         }).filter(Boolean); // Remove any undefined/null values
     }
 
-    console.log('foto', pictureSrc);
     return (
         <div className={`relative ${classes}`}>
             <button
