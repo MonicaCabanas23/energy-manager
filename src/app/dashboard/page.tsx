@@ -32,6 +32,13 @@ export default function Dashboard() {
         { circuito: "Circuito 1", voltaje: "220V", intensidad: "5A", consumo: "1kWh", costo: "$100" },
         { circuito: "Circuito 2", voltaje: "110V", intensidad: "10A", consumo: "2kWh", costo: "$200" },
         { circuito: "Circuito 3", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 4", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 5", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 6", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 7", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 8", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 9", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
+        { circuito: "Circuito 10", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
     ];
     
     const options = {
@@ -102,11 +109,17 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-full p-2 grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
-        <div className="bg-teal-600 rounded-md md:col-span-2 text-white py-4 px-1 text-center relative shadow-md">
+        <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md p-6">
+            <Line options={options} data={dataLine} />
+        </div>
+        <div className="bg-white col-span-1 md:col-span-4 rounded-md shadow-md p-6">
+            <Pie data={dataPie} />
+        </div>
+        {/* <div className="bg-teal-600 rounded-md md:col-span-2 text-white py-4 px-1 text-center relative shadow-md">
             <h2 className="font-medium">Consumo total de energía</h2>
             <h1 className="font-extrabold text-4xl md:absolute md:top-1/2 md:left-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2">24kWh</h1>
-        </div>
-        <div className="col-span-1 md:col-span-10 shadow-md rounded-bl-md rounded-br-md">
+        </div> */}
+        <div className="col-span-1 md:col-span-12 shadow-md rounded-bl-md rounded-br-md">
             <Table 
                 definition={{
                     circuito   : "Circuito",
@@ -117,12 +130,6 @@ export default function Dashboard() {
                 }}
                 data={dummyData}
             />
-        </div>
-        <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md">
-            <Line options={options} data={dataLine} />
-        </div>
-        <div className="bg-white col-span-1 md:col-span-4 rounded-md shadow-md">
-            <Pie data={dataPie} />
         </div>
     </div>
   );

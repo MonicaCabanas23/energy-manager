@@ -1,5 +1,9 @@
+import ElectricalPanel from "@/components/ui/ElectricalPanel";
+
 export default function Circuitos() {
   return (
-    <h1>Circuitos</h1>
+    <div>
+      <ElectricalPanel />
+    </div>
   );
 }
