@@ -21,7 +21,7 @@ export default function Select({
         })
     }
 
-    const handleOnChange = (event: any) => {
+    const handleOnChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
         const selectedValue = event.target.value
         const option = options.find(opt => opt.value === selectedValue)
 

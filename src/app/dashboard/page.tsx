@@ -1,6 +1,5 @@
 "use client"
 
-import CardLigth from "@/components/ui/CardLigth";
 import Filters from "@/components/ui/Filters";
 import MultipleSelect from "@/components/ui/MultipleSelect";
 import Select from "@/components/ui/Select";
@@ -9,7 +8,6 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
   Title,
   Tooltip,
   Legend,

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react";
+import React from 'react';
 
 interface Option {
     value: string;
@@ -25,13 +26,13 @@ export default function MultipleSelect({
      * Handles option change
      * @param event 
      */
-    const handleOptionChange = (event: any) => {
+    const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const value       = event.target.id
         const isChecked   = event.target.checked
         const optionIndex = selectedOptions.findIndex((opt: Option) => opt.value === value)
 
         if(optionIndex >= 0 && !isChecked) {
-            const updated = selectedOptions.filter(opt => opt.value !== value)
+            const updated = selectedOptions.filter((opt: Option) => opt.value !== value)
             onChange?.(updated)
             setSelectedOptions(updated)
         }
@@ -120,6 +121,6 @@ export default function MultipleSelect({
                 </fieldset>
                 </div>
             </details>
-            </div>
+        </div>
     )
 }
