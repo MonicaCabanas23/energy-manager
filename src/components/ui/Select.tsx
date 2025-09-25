@@ -1,6 +1,6 @@
 interface Option {
     value: string;
-    label: string | number;
+    label: string;
 }
 
 interface SelectProps {

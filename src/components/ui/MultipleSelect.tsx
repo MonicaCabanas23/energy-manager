@@ -5,7 +5,7 @@ import React from 'react';
 
 interface Option {
     value: string;
-    label: string | number;
+    label: string;
 }
 
 interface MultipleSelectProps {

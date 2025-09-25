@@ -139,6 +139,7 @@ export default function Dashboard() {
                 onChange={(value) => console.log(value)}
             />
         </Filters>
+        
         <div className="max-w-full grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
             <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md p-6">
                 <Line options={options} data={dataLine} />
@@ -159,7 +160,6 @@ export default function Dashboard() {
                 />
             </div>
         </div>
-
     </div>
   );
 }
