@@ -52,8 +52,8 @@ export default function MultipleSelect({
      */
     const handleResetClick = () => {
         selectedOptions.forEach((opt: Option) => {
-            const target: any = document.getElementById(opt.value)
-            target.checked    = false
+            const target: HTMLInputElement | null = document.getElementById(opt.value) as HTMLInputElement | null
+            if(target) target.checked = false
         })
 
         setSelectedOptions([])
