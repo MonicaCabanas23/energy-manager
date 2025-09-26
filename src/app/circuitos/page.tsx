@@ -1,17 +1,17 @@
 "use client"
-import CreateCircuitForm from "@/components/CreateCircuitForm";
-import ElectricalPanel from "@/components/ui/ElectricalPanel";
-import Modal from "@/components/ui/Modal";
-import { useState } from "react";
-
-interface Circuit {
-  name            : string;
-  double_polarity : boolean;
-}
+import CreateOrUpdateSensorForm from "@/components/CreateOrUpdateSensorForm";
+import ElectricalPanel          from "@/components/ui/ElectricalPanel";
+import Modal                    from "@/components/ui/Modal";
+import { ISensor }              from "@/types/schemas/types";
+import { useEffect, useState }  from "react";
 
 export default function Circuitos() {
+  const [action, setAction]                 = useState<'create'|'update'>('create')
   const [modalIsVisible, setModalIsVisible] = useState<boolean>(false)
-  const [circuit, setCirctuit]              = useState<Circuit|null>(null)
+  const [sensor, setSensor]                 = useState<ISensor>({
+    name: '',
+    double_polarity: false
+  })
 
   const handleOnCloseModal = () => {
     setModalIsVisible(false)
@@ -19,17 +19,21 @@ export default function Circuitos() {
 
   const handleOnAccept = () => {
     // TODO: Send request to the API to save the circuit
+    console.log('Sensor a guardar: ', sensor)
     setModalIsVisible(false)
-    resetCircuitReference()
+    resetSensorReference()
   }
 
   const handleOnCancel = () => {
-    resetCircuitReference()
+    resetSensorReference()
     setModalIsVisible(false)
   }
 
-  const resetCircuitReference = () => {
-    setCirctuit(null)
+  const resetSensorReference = () => {
+    setSensor({
+      name: '',
+      double_polarity: false
+    })
   }
   
   return (
@@ -41,9 +45,12 @@ export default function Circuitos() {
           onClose={handleOnCloseModal}
           onAccept={handleOnAccept}
           onCancel={handleOnCancel}
-          title="Editar ciruito"
+          title={action === 'create' ? 'Agregar sensor' : 'Editar sensor'}
         >
-          <CreateCircuitForm />
+          <CreateOrUpdateSensorForm 
+            sensor={sensor}
+            onChange={(item: ISensor) => setSensor(item)}
+          />
         </Modal>
     </div>
   );

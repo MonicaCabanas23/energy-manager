@@ -6,7 +6,7 @@ interface InputProps {
     type      : string;
     label    ?: string;
     value    ?: string|number|boolean;
-    onChange ?: (value: string) => void;
+    onChange ?: (value: string|number|boolean) => void;
 }
 
 export default function Input({
@@ -17,45 +17,53 @@ export default function Input({
     onChange
 }: InputProps
 ) {
-    const [_value, setValue] = useState<string|number|boolean>('')
+    const [checkBoxInputValue, setCheckBoxInputValue] = useState<boolean>(false)
+    const [textInputValue, setTextInputValue]         = useState<string>('')
 
-    const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTextInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = event.target.value
-        setValue(newValue)
+        setTextInputValue(newValue)
+        onChange?.(newValue)
+    }
+
+    const handleCheckboxInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = event.target.checked
+        console.log('en input',newValue)
+        setCheckBoxInputValue(newValue)
         onChange?.(newValue)
     }
 
     const renderInput = () => {
-        if(type === 'checkbox' && typeof _value === 'boolean') {
+        if(type === 'checkbox') {
             return (
                 <input
                     id={ id }
                     type={ type }
-                    checked={_value }
-                    className="mt-0.5 border-gray-300 shadow-sm"
-                    onChange={ handleInputChange }
-                />
-            )
-        }
-        else if (typeof _value !== 'boolean') {
-            return (
-                <input
-                    id={ id }
-                    type={ type }
-                    value={_value }
-                    className="mt-0.5 w-full rounded border-gray-300 shadow-sm sm:text-sm"
-                    onChange={ handleInputChange }
+                    checked={ checkBoxInputValue }
+                    className="mt-0.5 rounded border-gray-300 shadow-sm sm:text-sm"
+                    onChange={ handleCheckboxInputChange }
                 />
             )
         }
         else {
-            return null
+            return (
+                <input
+                    id={ id }
+                    type={ type }
+                    value={ textInputValue}
+                    className="mt-0.5 w-full rounded border-gray-300 shadow-sm sm:text-sm"
+                    onChange={ handleTextInputChange }
+                />
+            )
         }
     }
 
     useEffect(() => {
-        if(value) {
-            setValue(value)
+        if(value && type === 'checkbox' && typeof value === 'boolean') {
+            setCheckBoxInputValue(value)
+        }
+        else if(value && type === 'text' && typeof value === 'string') {
+            setTextInputValue(value)
         }
     }, [])
 
