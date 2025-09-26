@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react";
 import Input from "./ui/Input"
 import type { ISensor } from "@/types/schemas/types";
 
@@ -21,13 +22,15 @@ export default function CreateOrUpdateSensorForm({
     }
 
     const handleDoublePolarityChange = (value: string|number|boolean) => {
-        console.log(typeof value)
-
         if(typeof value === 'boolean') {
             const newSensor = { ...sensor, double_polarity: value }
             onChange?.(newSensor)
         }
     }
+
+    useEffect(() => {
+        console.log(sensor)
+    }, [sensor])
 
     return (
         <form className="flex flex-col gap-4">
@@ -35,14 +38,14 @@ export default function CreateOrUpdateSensorForm({
                 id="name" 
                 type="text" 
                 label="Nombre" 
-                value="" 
+                value={sensor.name} 
                 onChange={ handleNameChange }
             />
             <Input 
                 id="double_polarity" 
                 type="checkbox" 
                 label="Doble polaridad" 
-                value={false} 
+                value={sensor.double_polarity} 
                 onChange={ handleDoublePolarityChange }
             />
         </form>

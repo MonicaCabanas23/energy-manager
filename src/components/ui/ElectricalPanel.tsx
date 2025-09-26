@@ -1,34 +1,14 @@
 "use client"
 
+import { ISensor } from "@/types/schemas/types"
 import { useState } from "react"
-
-interface CircuitInfo {
-  circuit: number
-  name: string
-}
+import { FaPlus } from "react-icons/fa6";
 
 interface ElectricalPanelProps {
-  className?: string
-}
-
-const circuitData: CircuitInfo[] = [
-  { circuit: 1, name: "Circuito Sala" },
-  { circuit: 2, name: "Circuito Cocina" },
-  { circuit: 3, name: "Circuito Habitación 1" },
-  { circuit: 4, name: "Circuito Habitación 2" },
-  { circuit: 5, name: "Circuito Lavandería" },
-  { circuit: 6, name: "Circuito Baño" },
-  { circuit: 7, name: "Circuito Aire Acondicionado" },
-  { circuit: 8, name: "Circuito Iluminación Exterior" },
-  { circuit: 9, name: "Circuito Refrigerador" },
-  { circuit: 10, name: "Circuito General Auxiliar" },
-]
-
-// Simulate different load states for demonstration
-const getCircuitStatus = (circuit: number) => {
-  const statuses = ["normal", "warning", "overload", "main"]
-  const index = (circuit - 1) % 4
-  return statuses[index]
+  sensors           : ISensor[];
+  classes          ?: string;
+  onSensorClick    ?: (item: ISensor) => void;
+  onAddSensorClick ?: () => void;
 }
 
 const getCircuitColor = (status: string) => {
@@ -46,17 +26,17 @@ const getCircuitColor = (status: string) => {
   }
 }
 
-const getCurrentValue = (circuit: number) => {
-  // Simulate different current values
-  const values = [15, 8, 22, 18, 12, 6, 35, 9, 14, 11]
-  return values[(circuit - 1) % values.length]
-}
-
-export default function ElectricalPanel({ className = "" }: ElectricalPanelProps) {
+export default function ElectricalPanel({ 
+  sensors = [], 
+  classes = '',
+  onSensorClick,
+  onAddSensorClick,
+}: ElectricalPanelProps
+) {
   const [hoveredCircuit, setHoveredCircuit] = useState<number | null>(null)
 
   return (
-    <div className={`p-6 rounded-xl shadow-lg ${className}`}>
+    <div className={`p-6 rounded-xl shadow-lg ${classes}`}>
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-gray-800 text-center">Tablero Eléctrico</h2>
       </div>
@@ -76,58 +56,67 @@ export default function ElectricalPanel({ className = "" }: ElectricalPanelProps
 
         <div className="grid grid-cols-3">
             <div className="col-span-2 grid grid-cols-2 gap-4 items-center justify-center">
-                {circuitData.map((circuit) => {
-                const status = getCircuitStatus(circuit.circuit)
-                const current = getCurrentValue(circuit.circuit)
-                const colorClass = getCircuitColor(status)
+              {sensors.map((sensor, index) => {
+              const status     = sensor.status
+              const current    = sensor.latest_value
+              const colorClass = getCircuitColor(sensor.status ?? 'normal')
 
-                return (
-                    <div
-                    key={circuit.circuit}
+              return (
+                  <div
+                    key={index}
                     className="relative"
-                    onMouseEnter={() => setHoveredCircuit(circuit.circuit)}
+                    onMouseEnter={() => setHoveredCircuit(index + 1)}
                     onMouseLeave={() => setHoveredCircuit(null)}
-                    >
-                    <div
-                        className={`
-                        min-w-16 h-16 ${colorClass} 
-                        rounded-md cursor-pointer transition-all duration-200
-                        flex flex-col items-center justify-center
-                        transform hover:scale-105 shadow-md hover:shadow-lg
-                        `}
-                    >
-                        <div className="text-white font-bold text-center">
-                        <div className="text-xs">C{circuit.circuit}</div>
-                        <div className="text-sm">{current}A</div>
-                        </div>
-                    </div>
+                  >
+                  <div
+                    className={`
+                      min-w-16 h-16 ${colorClass} 
+                      rounded-md cursor-pointer transition-all duration-200
+                      flex flex-col items-center justify-center
+                      transform hover:scale-105 shadow-md hover:shadow-lg
+                    `}
+                    onClick={() => {onSensorClick?.(sensor)}}
+                  >
+                      <div className="text-white font-bold text-center">
+                      <div className="text-xs">C{index + 1}</div>
+                      <div className="text-sm">{current}A</div>
+                      </div>
+                  </div>
 
-                    {hoveredCircuit === circuit.circuit && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
-                        <div className="bg-gray-800 text-white text-sm rounded p-2 whitespace-nowrap shadow-lg">
-                            <div className="font-semibold">{circuit.name}</div>
-                            <div className="text-xs opacity-90">Corriente: {current}A</div>
-                            <div className="text-xs opacity-90 capitalize">
-                            Estado:{" "}
-                            {status === "main"
-                                ? "Principal"
-                                : status === "normal"
-                                ? "Normal"
-                                : status === "warning"
-                                    ? "Advertencia"
-                                    : "Sobrecarga"}
-                            </div>
-                        </div>
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                        </div>
-                    )}
-                    </div>
+                  {hoveredCircuit === index + 1 && (
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
+                      <div className="bg-gray-800 text-white text-sm rounded p-2 whitespace-nowrap shadow-lg">
+                          <div className="font-semibold">{sensor.name}</div>
+                          <div className="text-xs opacity-90">Corriente: {current}A</div>
+                          <div className="text-xs opacity-90 capitalize">
+                          Estado:{" "}
+                          {status === "main"
+                              ? "Principal"
+                              : status === "normal"
+                              ? "Normal"
+                              : status === "warning"
+                                  ? "Advertencia"
+                                  : "Sobrecarga"}
+                          </div>
+                      </div>
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                  )}
+                  </div>
                 )
-                })}
+              })}
+              {/* Botón por defecto para agregar más sensores */}
+              <div className="min-w-16 h-16 bg-teal-600 
+                rounded-md cursor-pointer transition-all duration-200
+                flex flex-col items-center justify-center
+                transform hover:scale-105 shadow-md hover:shadow-lg text-white"
+                onClick={() => onAddSensorClick?.()}
+              >
+                <FaPlus />
+              </div>
             </div>
         </div>
       </div>
-
 
       <div className="mt-6 flex flex-wrap justify-center gap-4 text-sm">
         <div className="flex items-center gap-2">

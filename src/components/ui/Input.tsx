@@ -1,9 +1,6 @@
-"use client"
-import { useEffect, useState } from "react";
-
 interface InputProps {
     id        : string
-    type      : string;
+    type      : 'text'|'checkbox';
     label    ?: string;
     value    ?: string|number|boolean;
     onChange ?: (value: string|number|boolean) => void;
@@ -17,31 +14,15 @@ export default function Input({
     onChange
 }: InputProps
 ) {
-    const [checkBoxInputValue, setCheckBoxInputValue] = useState<boolean>(false)
-    const [textInputValue, setTextInputValue]         = useState<string>('')
-
-    const handleTextInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = event.target.value
-        setTextInputValue(newValue)
-        onChange?.(newValue)
-    }
-
-    const handleCheckboxInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = event.target.checked
-        console.log('en input',newValue)
-        setCheckBoxInputValue(newValue)
-        onChange?.(newValue)
-    }
-
     const renderInput = () => {
         if(type === 'checkbox') {
             return (
                 <input
                     id={ id }
                     type={ type }
-                    checked={ checkBoxInputValue }
+                    checked={ Boolean(value) }
                     className="mt-0.5 rounded border-gray-300 shadow-sm sm:text-sm"
-                    onChange={ handleCheckboxInputChange }
+                    onChange={ (e) => onChange?.(e.target.checked) }
                 />
             )
         }
@@ -50,22 +31,13 @@ export default function Input({
                 <input
                     id={ id }
                     type={ type }
-                    value={ textInputValue}
+                    value={ String(value) }
                     className="mt-0.5 w-full rounded border-gray-300 shadow-sm sm:text-sm"
-                    onChange={ handleTextInputChange }
+                    onChange={ (e) => onChange?.(e.target.value) }
                 />
             )
         }
     }
-
-    useEffect(() => {
-        if(value && type === 'checkbox' && typeof value === 'boolean') {
-            setCheckBoxInputValue(value)
-        }
-        else if(value && type === 'text' && typeof value === 'string') {
-            setTextInputValue(value)
-        }
-    }, [])
 
     return (
         <label>

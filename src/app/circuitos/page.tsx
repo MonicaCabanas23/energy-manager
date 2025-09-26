@@ -4,6 +4,7 @@ import ElectricalPanel          from "@/components/ui/ElectricalPanel";
 import Modal                    from "@/components/ui/Modal";
 import { ISensor }              from "@/types/schemas/types";
 import { useEffect, useState }  from "react";
+import { sensors }              from "@/data/sensors";
 
 export default function Circuitos() {
   const [action, setAction]                 = useState<'create'|'update'>('create')
@@ -35,23 +36,37 @@ export default function Circuitos() {
       double_polarity: false
     })
   }
+
+  const handleSensorClick = (item: ISensor) => {
+    setModalIsVisible(true)
+    setSensor(item)
+    setAction('update')
+  }
+
+  const handleAddSensorClick = () => {
+    setModalIsVisible(true)
+    setAction('create')
+  }
   
   return (
     <div>
-      <button onClick={() => setModalIsVisible(true)}>Open modal</button>
-      <ElectricalPanel />
-        <Modal 
-          visible={modalIsVisible}
-          onClose={handleOnCloseModal}
-          onAccept={handleOnAccept}
-          onCancel={handleOnCancel}
-          title={action === 'create' ? 'Agregar sensor' : 'Editar sensor'}
-        >
-          <CreateOrUpdateSensorForm 
-            sensor={sensor}
-            onChange={(item: ISensor) => setSensor(item)}
-          />
-        </Modal>
+      <ElectricalPanel 
+        sensors={sensors}
+        onSensorClick={handleSensorClick}
+        onAddSensorClick={handleAddSensorClick}
+      />
+      <Modal 
+        visible={modalIsVisible}
+        onClose={handleOnCloseModal}
+        onAccept={handleOnAccept}
+        onCancel={handleOnCancel}
+        title={action === 'create' ? 'Agregar sensor' : 'Editar sensor'}
+      >
+        <CreateOrUpdateSensorForm 
+          sensor={sensor}
+          onChange={(item: ISensor) => setSensor(item)}
+        />
+      </Modal>
     </div>
   );
 }
