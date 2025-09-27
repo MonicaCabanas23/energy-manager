@@ -41,7 +41,7 @@ export default function ElectricalPanel({
         <h2 className="text-2xl font-bold text-gray-800 text-center">Tablero Eléctrico</h2>
       </div>
 
-      <div className="min-w-48 overflow-scroll md:w-1/2 flex flex-col m-auto bg-gray-600 rounded-md p-4 shadow-lg">
+      <div className="min-w-48 md:w-1/2 flex flex-col m-auto bg-gray-300 rounded-md p-4 shadow-lg">
         <div className="flex flex-col items-center">
             <div className="w-full grid grid-cols-3 gap-4 items-center justify-center">
                 <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">10 A</div>
@@ -70,10 +70,11 @@ export default function ElectricalPanel({
                   >
                   <div
                     className={`
-                      min-w-16 h-16 ${colorClass} 
+                      min-w-16 min-h-16 ${colorClass} 
                       rounded-md cursor-pointer transition-all duration-200
                       flex flex-col items-center justify-center
                       transform hover:scale-105 shadow-md hover:shadow-lg
+                      ${sensor.double_polarity ? 'row-span-2' : 'row-span-1'}
                     `}
                     onClick={() => {onSensorClick?.(sensor)}}
                   >
@@ -83,6 +84,7 @@ export default function ElectricalPanel({
                       </div>
                   </div>
 
+                  {/* Tooltip */}
                   {hoveredCircuit === index + 1 && (
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-10">
                       <div className="bg-gray-800 text-white text-sm rounded p-2 whitespace-nowrap shadow-lg">

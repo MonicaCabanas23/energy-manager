@@ -40,9 +40,31 @@ export default function Input({
     }
 
     return (
-        <label>
-            <span className="text-sm font-medium text-gray-700"> { label } </span>
-            { renderInput() }
-        </label>
+        <>
+            {
+                type === 'checkbox' ?
+                <label className="flex items-center gap-1">
+                    <input
+                        id={ id }
+                        type={ type }
+                        checked={ Boolean(value) }
+                        className="mt-0.5 rounded border-gray-300 shadow-sm sm:text-sm"
+                        onChange={ (e) => onChange?.(e.target.checked) }
+                    />
+                    <span className="text-sm font-medium text-gray-700"> { label } </span>
+                </label>
+                : 
+                <label className="">
+                    <span className="text-sm font-medium text-gray-700"> { label } </span>
+                    <input
+                        id={ id }
+                        type={ type }
+                        value={ String(value) }
+                        className="mt-0.5 w-full rounded border-gray-300 shadow-sm sm:text-sm"
+                        onChange={ (e) => onChange?.(e.target.value) }
+                    />
+                </label>
+            }
+        </>
     )
 }

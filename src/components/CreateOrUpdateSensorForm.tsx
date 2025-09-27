@@ -33,7 +33,7 @@ export default function CreateOrUpdateSensorForm({
     }, [sensor])
 
     return (
-        <form className="flex flex-col gap-4">
+        <form className="flex flex-col gap-4 justify-center">
             <Input 
                 id="name" 
                 type="text" 
