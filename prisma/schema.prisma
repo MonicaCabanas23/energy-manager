@@ -1,0 +1,85 @@
+// Define database connection via the `PRISMA_ENERGY_MANAGER_DB_POSTGRES_URL` env var
+datasource db {
+  provider = "postgresql"
+  url      = env("PRISMA_ENERGY_MANAGER_DB_POSTGRES_URL")
+}
+
+// Define custom output path for generated Prisma Client
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Example data model
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  places UserXPlace[]
+}
+
+model Place {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users UserXPlace[]
+  panels Panel[]
+}
+
+model UserXPlace { 
+  id        Int      @id @default(autoincrement()) 
+  userId    Int 
+  placeId   Int 
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  
+  // Relations 
+  user  User  @relation(fields: [userId], references: [id]) 
+  place Place @relation(fields: [placeId], references: [id]) 
+  
+  @@unique([userId, placeId]) // evita duplicados 
+}
+
+model Panel { 
+  id        Int      @id @default(autoincrement()) 
+  espChipId String   @unique 
+  placeId   Int 
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  
+  // Relations 
+  place   Place @relation(fields: [placeId], references: [id]) 
+  sensors Sensor[] 
+} 
+
+model Sensor { 
+  id        Int      @id @default(autoincrement()) 
+  code      String 
+  name      String 
+  panelId   Int 
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  
+  // Relations 
+  panel    Panel @relation(fields: [panelId], references: [id]) 
+  readings Reading[] 
+} 
+ 
+model Reading { 
+  id        Int      @id @default(autoincrement()) 
+  sensorId  Int 
+  voltage   Float 
+  intensity Float 
+  power     Float 
+  createdAt DateTime @default(now()) 
+  updatedAt DateTime @updatedAt 
+  
+  // Relations 
+  sensor Sensor @relation(fields: [sensorId], references: [id]) 
+}
