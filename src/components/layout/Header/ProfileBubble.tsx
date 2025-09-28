@@ -23,7 +23,7 @@ export default function ProfileBubble({pictureSrc, classes="", links=[], menuVis
      */
     const renderLinkOptions = () => {
         return links.map((option, index) => {
-            if(option.showInProfileMenu) { // Check if the option should be shown in the profile menu
+            if(option.showInProfileMenu && option.visible) { // Check if the option should be shown in the profile menu
                 return (
                     <LinkOption key={index} option={option} />
                 )

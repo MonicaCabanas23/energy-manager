@@ -7,16 +7,7 @@ import { PiCircuitryFill } from "react-icons/pi";
 import { BiLogOut }        from "react-icons/bi";
 import { SessionProvider } from "@/contexts/SessionContext";
 import { auth0 }           from "@/lib/auth0";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+import { syncUser } from "@/lib/syncUser";
 
 export const metadata: Metadata = {
   title: "Administrador de energía",
@@ -29,8 +20,7 @@ export default async function RootLayout({
 }>) {
 
   const session = await auth0.getSession();
-
-  
+  const user    = session?.user ? syncUser(session.user) : null
 
   const links = [
     { 
@@ -38,6 +28,7 @@ export default async function RootLayout({
       label: "Home", 
       href: "/", 
       icon: <MdHome />,
+      visible: user ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -48,6 +39,7 @@ export default async function RootLayout({
       label: "Dashboard",
       href: "/dashboard",
       icon: <MdDashboard />,
+      visible: user ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -58,6 +50,7 @@ export default async function RootLayout({
       label: "Circuitos",
       href: "/circuitos",
       icon: <PiCircuitryFill />,
+      visible: user ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -68,6 +61,7 @@ export default async function RootLayout({
       label: "Cerrar sesión",
       href: "/auth/logout",
       icon: <BiLogOut />,
+      visible: user ? true : false,
       classes: 'text-red-500',
       showInHeader: false,
       showInSidebar: true,

@@ -12,8 +12,9 @@ generator client {
 // Example data model
 model User {
   id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
+  auth0Id   String   @unique
+  email     String?  @unique
+  name      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

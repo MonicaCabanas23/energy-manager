@@ -18,7 +18,7 @@ export default async function Header({links}: Props) {
    */
   const renderLinks = () => {
     return links.map((link, index) => {
-      if(link.showInHeader) { // If showInHeader is true then render the link
+      if(link.showInHeader && link.visible) { // If showInHeader is true then render the link
         return (
           <Link key={index} href={link.href} className="text-gray-500 transition hover:text-gray-500/75">
             {link.label}

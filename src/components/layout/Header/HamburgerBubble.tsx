@@ -24,7 +24,7 @@ export default function HamburgerBubble({ pictureSrc, links }: Props) {
      */
     const renderLinkOptions = () => {
         return links.map((option, index) => {
-            if(option.showInSidebar) { // Check if the option should be shown in the profile menu
+            if(option.showInSidebar && option.visible) { // Check if the option should be shown in the profile menu
                 return (
                     <LinkOption 
                         key={index} 
