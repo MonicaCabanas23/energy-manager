@@ -5,9 +5,9 @@ import { MdHome }          from "react-icons/md";
 import { MdDashboard }     from "react-icons/md";
 import { PiCircuitryFill } from "react-icons/pi";
 import { BiLogOut }        from "react-icons/bi";
-import { SessionProvider } from "@/contexts/SessionContext";
+import { UserProvider }    from "@/contexts/UserContext";
 import { auth0 }           from "@/lib/auth0";
-import { syncUser } from "@/lib/syncUser";
+import { syncUser }        from "@/lib/syncUser";
 
 export const metadata: Metadata = {
   title: "Administrador de energía",
@@ -19,8 +19,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  const session = await auth0.getSession();
-  const user    = session?.user ? syncUser(session.user) : null
+  const session     = await auth0.getSession();
+  const dbUser      = session?.user ? syncUser(session.user) : null
+  const sessionUser = session?.user ?? null
 
   const links = [
     { 
@@ -28,7 +29,7 @@ export default async function RootLayout({
       label: "Home", 
       href: "/", 
       icon: <MdHome />,
-      visible: user ? true : false,
+      visible: dbUser ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -39,7 +40,7 @@ export default async function RootLayout({
       label: "Dashboard",
       href: "/dashboard",
       icon: <MdDashboard />,
-      visible: user ? true : false,
+      visible: dbUser ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -50,7 +51,7 @@ export default async function RootLayout({
       label: "Circuitos",
       href: "/circuitos",
       icon: <PiCircuitryFill />,
-      visible: user ? true : false,
+      visible: dbUser ? true : false,
       showInHeader: true,
       showInSidebar: true,
       showInProfileMenu: false,
@@ -61,7 +62,7 @@ export default async function RootLayout({
       label: "Cerrar sesión",
       href: "/auth/logout",
       icon: <BiLogOut />,
-      visible: user ? true : false,
+      visible: dbUser ? true : false,
       classes: 'text-red-500',
       showInHeader: false,
       showInSidebar: true,
@@ -73,14 +74,14 @@ export default async function RootLayout({
   return (
     <html lang="es">
       <body>
-        <SessionProvider value={session}>
+        <UserProvider value={sessionUser}>
           <Header 
             links={links}
           />
           <main className="bg-gray-100 max-w-screen" style={{ minHeight: "calc(100vh - 56px)" }}>
             {children}
           </main>
-        </SessionProvider>
+        </UserProvider>
       </body>
     </html>
   );
