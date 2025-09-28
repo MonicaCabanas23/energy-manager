@@ -11,9 +11,6 @@ export default async function Home() {
   return (
     <main>
       <h1>Welcome, {session?.user.name}!</h1>
-      {
-        users.map((user:any) => (<p key={user.id}>{user.name}</p>))
-      }
     </main>
   );
 }
