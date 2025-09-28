@@ -5,7 +5,7 @@ export interface ILinkOption {
     label             : string;
     href              : string;
     icon              : JSX.Element;
-    visible           : Boolean;
+    visible           : boolean;
     showInHeader      : boolean;
     showInSidebar     : boolean;
     showInProfileMenu : boolean;
