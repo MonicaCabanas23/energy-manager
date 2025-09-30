@@ -28,10 +28,6 @@ export default function CreateOrUpdateSensorForm({
         }
     }
 
-    useEffect(() => {
-        console.log(sensor)
-    }, [sensor])
-
     return (
         <form className="flex flex-col gap-4 justify-center">
             <Input 

@@ -42,7 +42,7 @@ export default function ElectricalPanel({
         <div className="grid grid-cols-3">
             <div className="col-span-2 grid grid-cols-2 gap-4 items-center justify-center">
               {sensors.map((sensor, index) => {
-              const current    = sensor.intensity
+              const current    = sensor.intensity ?? 0
 
               return (
                   <div

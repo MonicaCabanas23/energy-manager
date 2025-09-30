@@ -1,6 +1,5 @@
 export interface CreateOrUpdateSensor {
-    id ?: number;
-    code: string;
+    id ?: number|null;
     name: string;
     doublePolarity: boolean;
     panelId: number;

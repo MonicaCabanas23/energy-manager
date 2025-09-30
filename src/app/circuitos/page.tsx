@@ -11,8 +11,7 @@ export default function Circuitos() {
   const [modalIsVisible, setModalIsVisible] = useState<boolean>(false)
   const [sensors, setSensors]               = useState<SensorWithReadingResponseDTO[]>([])
   const [sensor, setSensor]                 = useState<CreateOrUpdateSensor>({
-    id             : 0,
-    code           : 'A0',
+    id             : null,
     name           : '',
     doublePolarity : false,
     panelId        : 1
@@ -22,11 +21,38 @@ export default function Circuitos() {
     setModalIsVisible(false)
   }
 
-  const handleOnAccept = () => {
-    // TODO: Send request to the API to save the circuit
-    console.log('Sensor a guardar: ', sensor)
-    setModalIsVisible(false)
-    resetSensorReference()
+  const handleOnAccept = async () => {
+    try {
+      if(action === 'create') {
+        const response = await fetch('/api/sensors/with-reading', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(sensor)
+        })
+
+        const newSensor = await response.json()
+        const newSensors = [...sensors, newSensor]
+        setSensors(newSensors)
+      }
+      else {
+        const data = await fetch('/api/sensors/with-reading', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(sensor)
+        })
+
+        console.log(data)
+      }
+
+      setModalIsVisible(false)
+      resetSensorReference()
+    } catch (error) {
+      
+    }
   }
 
   const handleOnCancel = () => {
@@ -37,7 +63,6 @@ export default function Circuitos() {
   const resetSensorReference = () => {
     setSensor({
       id             : 0,
-      code           : 'A0',
       name           : '',
       doublePolarity : false,
       panelId        : 1
@@ -65,7 +90,7 @@ export default function Circuitos() {
   useEffect(() => {
     const fetchSensors = async () => {
       try {
-        const res = await fetch(`/api/sensors?${new URLSearchParams({
+        const res = await fetch(`/api/sensors/with-reading?${new URLSearchParams({
             panelId: '1' // TODO: Cambiar el parámetro por el id del panel de manera dinámica
           }).toString()
         }`);
