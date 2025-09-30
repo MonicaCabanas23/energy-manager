@@ -30,7 +30,7 @@ model Place {
 
   // Relations
   users UserXPlace[]
-  panels Panel[]
+  panel Panel?
 }
 
 model UserXPlace { 
@@ -50,7 +50,7 @@ model UserXPlace {
 model Panel { 
   id        Int      @id @default(autoincrement()) 
   espChipId String   @unique 
-  placeId   Int 
+  placeId   Int      @unique
   createdAt DateTime @default(now()) 
   updatedAt DateTime @updatedAt 
   
@@ -60,12 +60,13 @@ model Panel {
 } 
 
 model Sensor { 
-  id        Int      @id @default(autoincrement()) 
-  code      String 
-  name      String 
-  panelId   Int 
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+  id             Int      @id @default(autoincrement()) 
+  code           String 
+  name           String 
+  doublePolarity Boolean
+  panelId        Int 
+  createdAt      DateTime @default(now()) 
+  updatedAt      DateTime @updatedAt 
   
   // Relations 
   panel    Panel @relation(fields: [panelId], references: [id]) 
@@ -77,7 +78,7 @@ model Reading {
   sensorId  Int 
   voltage   Float 
   intensity Float 
-  power     Float 
+  power     Float
   createdAt DateTime @default(now()) 
   updatedAt DateTime @updatedAt 
   

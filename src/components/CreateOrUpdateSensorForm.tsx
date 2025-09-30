@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import Input from "./ui/Input"
-import type { ISensor } from "@/types/schemas/types";
+import type { CreateOrUpdateSensor } from "@/types/actions/types";
 
 interface Props {
-    sensor: ISensor;
-    onChange ?: (item: ISensor) => void;
+    sensor: CreateOrUpdateSensor;
+    onChange ?: (item: CreateOrUpdateSensor) => void;
 }
 
 export default function CreateOrUpdateSensorForm({
@@ -23,7 +23,7 @@ export default function CreateOrUpdateSensorForm({
 
     const handleDoublePolarityChange = (value: string|number|boolean) => {
         if(typeof value === 'boolean') {
-            const newSensor = { ...sensor, double_polarity: value }
+            const newSensor = { ...sensor, doublePolarity: value }
             onChange?.(newSensor)
         }
     }
@@ -42,10 +42,10 @@ export default function CreateOrUpdateSensorForm({
                 onChange={ handleNameChange }
             />
             <Input 
-                id="double_polarity" 
+                id="doublePolarity" 
                 type="checkbox" 
                 label="Doble polaridad" 
-                value={sensor.double_polarity} 
+                value={sensor.doublePolarity} 
                 onChange={ handleDoublePolarityChange }
             />
         </form>
