@@ -1,13 +1,13 @@
 "use client"
 import CreateOrUpdateSensorForm         from "@/components/CreateOrUpdateSensorForm";
-import ElectricalPanel                  from "@/components/ui/ElectricalPanel";
+import ElectricalPanel                  from "@/components/electrical-panel/electrical-panel";
 import Modal                            from "@/components/ui/Modal";
 import { useEffect, useState }          from "react";
 import { SensorWithReadingResponseDTO } from "@/dto/sensor-with-reading-response.dto";
 import type { CreateOrUpdateSensor }     from "@/types/actions/types";
 
 export default function Circuitos() {
-  const [action, setAction]                 = useState<'create'|'update'>('create')
+  const [action, setAction]                 = useState<'create'|'view'|'update'|'delete'>('create')
   const [modalIsVisible, setModalIsVisible] = useState<boolean>(false)
   const [sensors, setSensors]               = useState<SensorWithReadingResponseDTO[]>([])
   const [sensor, setSensor]                 = useState<CreateOrUpdateSensor>({
@@ -16,6 +16,19 @@ export default function Circuitos() {
     doublePolarity : false,
     panelId        : 1
   })
+  
+  const titles = {
+    create : 'Agregar sensor',
+    view   : 'Visualizar sensor',
+    update : 'Editar sensor',
+    delete : '¿Estás seguro de eliminar este sensor?'
+  }
+
+  type TitleKeys = keyof typeof titles
+  
+  const getTitle = (key: TitleKeys) => {
+    return titles[key]
+  }
 
   const handleOnCloseModal = () => {
     setModalIsVisible(false)
@@ -35,8 +48,11 @@ export default function Circuitos() {
         const newSensor = await response.json()
         const newSensors = [...sensors, newSensor]
         setSensors(newSensors)
+
+        // TODO: toast for successfully 
+        
       }
-      else {
+      else if(action === 'update') {
         const data = await fetch('/api/sensors/with-reading', {
           method: 'PATCH',
           headers: {
@@ -46,6 +62,14 @@ export default function Circuitos() {
         })
 
         console.log(data)
+        // TODO: toast for successfully updating the sensor
+      }
+      else if(action === 'delete') {
+        await fetch(`/api/sensors/${sensor.id}`, {
+          method: 'DELETE'
+        })
+
+        // TODO: toast for successfully deleting the sensor
       }
 
       setModalIsVisible(false)
@@ -73,10 +97,20 @@ export default function Circuitos() {
    * Handles sensor click
    * @param {Isensor} item
    */
-  const handleSensorClick = (item: SensorWithReadingResponseDTO) => {
+  const handleEditSensorClic = (item: SensorWithReadingResponseDTO) => {
     setModalIsVisible(true)
     setSensor(item)
     setAction('update')
+  }
+
+  const handleViewSensorClic = (item: SensorWithReadingResponseDTO) => {
+    setModalIsVisible(true)
+    setSensor(item)
+    setAction('update')
+  }
+
+  const handleDeleteSensorClick = (item: SensorWithReadingResponseDTO) => {
+
   }
 
   /**
@@ -112,15 +146,18 @@ export default function Circuitos() {
     <div>
       <ElectricalPanel 
         sensors={sensors}
-        onSensorClick={handleSensorClick}
+        onViewSensorClick={handleEditSensorClic}
+        onEditSensorClick={handleEditSensorClic}
+        onDeleteSensorClick={handleEditSensorClic}
         onAddSensorClick={handleAddSensorClick}
       />
+
       <Modal 
         visible={modalIsVisible}
         onClose={handleOnCloseModal}
         onAccept={handleOnAccept}
         onCancel={handleOnCancel}
-        title={action === 'create' ? 'Agregar sensor' : 'Editar sensor'}
+        title={getTitle(action)}
       >
         <CreateOrUpdateSensorForm 
           sensor={sensor}

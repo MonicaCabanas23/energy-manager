@@ -8,6 +8,7 @@ export async function getSensorsWithLastReadingByPanel(panel: Panel) {
             panel: panel
         },
         include: { readings: {orderBy: {createdAt: 'desc'}, take: 1} },
+        orderBy: { createdAt: 'asc' }
     })
     return sensors
 }
