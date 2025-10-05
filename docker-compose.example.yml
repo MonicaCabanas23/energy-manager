@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PRISMA_ENERGY_MANAGER_DB_POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/energy_manager
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
+      - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
+      - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
+      - AUTH0_SECRET=${AUTH0_SECRET}
+      - AUTH0_SCOPE=${AUTH0_SCOPE}
+      - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
+      - APP_BASE_URL=${APP_BASE_URL:-http://localhost:3000}
+      - MQTT_URI=${MQTT_URI:-mqtt://mosquitto:1883}
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MQTT_TOPICS=${MQTT_TOPICS}
+      
+    restart: unless-stopped
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/.next
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/mqtt-subscriber"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.energy-manager.rule=Host(`energy-manager.example.com`)"
+      - "traefik.http.routers.energy-manager.entrypoints=web"
+      - "traefik.http.services.energy-manager.loadbalancer.server.port=3000"
