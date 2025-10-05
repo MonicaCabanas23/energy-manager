@@ -109,18 +109,6 @@ export default function Circuitos() {
     setAction('update')
   }
 
-  const handleDeleteSensorClick = (item: SensorWithReadingResponseDTO) => {
-
-  }
-
-  /**
-   * Handles click event to "Add sensor" button
-   */
-  const handleAddSensorClick = () => {
-    setModalIsVisible(true)
-    setAction('create')
-  }
-
   useEffect(() => {
     const fetchSensors = async () => {
       try {
@@ -149,7 +137,6 @@ export default function Circuitos() {
         onViewSensorClick={handleEditSensorClic}
         onEditSensorClick={handleEditSensorClic}
         onDeleteSensorClick={handleEditSensorClic}
-        onAddSensorClick={handleAddSensorClick}
       />
 
       <Modal 

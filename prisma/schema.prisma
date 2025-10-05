@@ -19,45 +19,20 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  places UserXPlace[]
-}
-
-model Place {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  users UserXPlace[]
-  panel Panel?
-}
-
-model UserXPlace { 
-  id        Int      @id @default(autoincrement()) 
-  userId    Int 
-  placeId   Int 
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
-  
-  // Relations 
-  user  User  @relation(fields: [userId], references: [id]) 
-  place Place @relation(fields: [placeId], references: [id]) 
-  
-  @@unique([userId, placeId]) // evita duplicados 
+  panels Panel[]
 }
 
 model Panel { 
   id        Int      @id @default(autoincrement()) 
   espChipId String   @unique 
-  placeId   Int      @unique
+  userId    Int      @unique
   createdAt DateTime @default(now()) 
   updatedAt DateTime @updatedAt 
   
   // Relations 
-  place   Place @relation(fields: [placeId], references: [id]) 
+  user    User @relation(fields: [userId], references: [id]) 
   sensors Sensor[] 
-} 
+}
 
 model Sensor { 
   id             Int      @id @default(autoincrement()) 
@@ -72,16 +47,26 @@ model Sensor {
   panel    Panel @relation(fields: [panelId], references: [id]) 
   readings Reading[] 
 } 
- 
+
+model ReadingType {
+  id        Int      @id @default(autoincrement())
+  code      String
+  label     String
+  createAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  readings Reading[]
+}
+
 model Reading { 
-  id        Int      @id @default(autoincrement()) 
-  sensorId  Int 
-  voltage   Float 
-  intensity Float 
-  power     Float
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt 
+  id            Int      @id @default(autoincrement()) 
+  sensorId      Int 
+  readingTypeId Int 
+  value         Float 
+  createdAt     DateTime @default(now()) 
+  updatedAt     DateTime @updatedAt 
   
   // Relations 
   sensor Sensor @relation(fields: [sensorId], references: [id]) 
+  readingType ReadingType @relation(fields: [readingTypeId], references: [id])
 }

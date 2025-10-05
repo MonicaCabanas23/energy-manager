@@ -9,3 +9,13 @@ export async function getPanelById(id: number) {
     
     return panel
 }
+
+export async function getPanelByEspChipId(espChipId: string) {
+    const panel = await prisma.panel.findFirst({
+        where: {
+            espChipId: espChipId
+        }
+    })
+
+    return panel
+}

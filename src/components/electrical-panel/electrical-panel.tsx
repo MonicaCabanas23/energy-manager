@@ -2,7 +2,6 @@
 
 import { SensorWithReadingResponseDTO } from "@/dto/sensor-with-reading-response.dto";
 import { useState } from "react"
-import { FaPlus } from "react-icons/fa6";
 import { MdDelete } from "react-icons/md";
 import { MdEdit } from "react-icons/md";
 import { MdInfo } from "react-icons/md";  
@@ -13,7 +12,6 @@ interface ElectricalPanelProps {
   onViewSensorClick   ?: (item: SensorWithReadingResponseDTO) => void;
   onEditSensorClick   ?: (item: SensorWithReadingResponseDTO) => void;
   onDeleteSensorClick ?: (item: SensorWithReadingResponseDTO) => void;
-  onAddSensorClick    ?: () => void;
 }
 
 export default function ElectricalPanel({ 
@@ -22,7 +20,6 @@ export default function ElectricalPanel({
   onViewSensorClick,
   onEditSensorClick,
   onDeleteSensorClick,
-  onAddSensorClick,
 }: ElectricalPanelProps
 ) {
   const [selectedCircuit, setSelectedCircuit] = useState<number | null>(null)
@@ -50,6 +47,7 @@ export default function ElectricalPanel({
       <div className="min-w-48 md:w-1/2 flex flex-col m-auto bg-gray-300 rounded-md p-4 shadow-lg">
         <div className="flex flex-col items-center">
             <div className="w-full grid grid-cols-3 gap-4 items-center justify-center">
+              {/* TODO: Modificar con los que vienen de la base de datos */}
                 <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">10 A</div>
                 <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">9.5 A</div>
                 <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">0.5 A</div>
@@ -86,7 +84,7 @@ export default function ElectricalPanel({
                       <p 
                         className="text-xs"
                       >
-                        {sensor.doublePolarity ? `C${index + 1}, C${index + 3}` : `C${index + 1}`}
+                        { sensor.name }
                       </p>
                       <div className="text-sm">{current}A</div>
                     </div>
@@ -118,16 +116,6 @@ export default function ElectricalPanel({
                   </div>
                 )
               })}
-
-              {/* Botón por defecto para agregar más sensores */}
-              <div className="min-w-16 h-16 bg-teal-600 
-                rounded-md cursor-pointer transition-all duration-200
-                flex flex-col items-center justify-center
-                transform hover:scale-105 shadow-md hover:shadow-lg text-white"
-                onClick={() => onAddSensorClick?.()}
-              >
-                <FaPlus />
-              </div>
             </div>
         </div>
       </div>

@@ -39,3 +39,18 @@ export async function getNewCode(panel: Panel)
         throw new Error('Error generating new code')
     }
 }
+
+export async function getSensorByCodeAndPanel(code: string, panel: Panel) {
+    try {
+        const sensor = await prisma.sensor.findFirst({
+            where: {
+                code: code,
+                panel: panel
+            }
+        })
+
+        return sensor
+    } catch (error) {
+        throw new Error('Error fetching sensor')
+    }
+}
