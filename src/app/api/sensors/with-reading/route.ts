@@ -33,9 +33,8 @@ export async function GET(
         const mapped = sensors.map((s: SensorWithReadings) => (
             SensorWithReadingResponseDTO.parse({
                 ...s,
-                intensity        : s.readings[0]?.intensity ?? null,
-                voltage          : s.readings[0]?.voltage   ?? null,
-                power            : s.readings[0]?.power     ?? null,
+                value            : s.readings[0]?.value     ?? null,
+                readingTypeId    : s.readings[0]?.readingTypeId ?? null,
                 readingCreatedAt : s.readings[0]?.createdAt ?? null
             })
         ))
