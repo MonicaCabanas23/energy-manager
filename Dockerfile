@@ -68,8 +68,9 @@ RUN adduser --system --uid 1001 nextjs
 
 # Copiar archivos necesarios
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
 # Cambiar propiedad de los archivos
@@ -82,4 +83,4 @@ USER nextjs
 EXPOSE 3000
 
 # Comando para iniciar la aplicación
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
