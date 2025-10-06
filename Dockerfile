@@ -6,11 +6,14 @@ RUN apk add --no-cache libc6-compat
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package.json package-lock.json* ./
-
 # Instalar dependencias
 FROM base AS deps
+
+# Copiar solo los archivos necesarios para instalar dependencias
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+
+# Instalar dependencias
 RUN npm ci
 
 # Construir la aplicación
@@ -47,11 +50,18 @@ ENV MQTT_USERNAME=${MQTT_USERNAME}
 ENV MQTT_PASSWORD=${MQTT_PASSWORD}
 ENV MQTT_TOPICS=${MQTT_TOPICS}
 
+# Copiar archivos de dependencias y configuración primero
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY --from=deps /app/prisma ./prisma
+COPY package.json package-lock.json* ./
+COPY next.config.ts postcss.config.mjs tsconfig.json eslint.config.mjs ./
 
-# Generar Prisma Client
+# Generar Prisma Client (esto solo se regenerará si los archivos de prisma cambian)
 RUN npx prisma generate
+
+# Ahora copiar el código fuente (que cambia con más frecuencia)
+COPY public ./public
+COPY src ./src
 
 # Construir la aplicación
 RUN npm run build
