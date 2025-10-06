@@ -1,7 +1,7 @@
 FROM node:22-alpine AS base
 
 # Instalar dependencias necesarias
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 # Establecer directorio de trabajo
 WORKDIR /app
