@@ -5,6 +5,7 @@ import Input from "@/components/ui/Input";
 import MultipleSelect from "@/components/ui/MultipleSelect";
 import Table from "@/components/ui/Table";
 import { useUser } from "@/contexts/UserContext";
+import { BarLoader } from "react-spinners";
 import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import {
   Chart as ChartJS,
@@ -17,7 +18,7 @@ import {
   LineElement,
   ArcElement,
 } from "chart.js";
-import { useEffect, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { Line } from 'react-chartjs-2';
 import { Pie } from 'react-chartjs-2';
 
@@ -109,6 +110,11 @@ export default function Dashboard() {
     const [selectOptions, setSelectOptions] = useState<SelectOption[]>([])
     const [isLoading, setIsLoading] = useState<boolean>(true)
 
+    const override: CSSProperties = {
+        display : "block",
+        margin  : "auto auto",
+    };
+
     const fetchCircuits = async () => {
         try {
             const res = await fetch(`/api/circuits?${new URLSearchParams({
@@ -134,6 +140,7 @@ export default function Dashboard() {
             console.error(error);
         }
     };
+
     useEffect(() => {
         const load = async () => {
             await fetchCircuits()
@@ -141,6 +148,14 @@ export default function Dashboard() {
         }
 
         load()
+
+        // Set up interval to fetch data every 5 seconds (5000 milliseconds)
+        const intervalId = setInterval(() => {
+            fetchCircuits();
+        }, 5000);
+
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
 
     }, [])
 
@@ -189,7 +204,13 @@ export default function Dashboard() {
                 </div>
             </>
             : 
-            <> Cargando...</>
+            <BarLoader
+                color="#008080"
+                loading={isLoading}
+                cssOverride={override}
+                aria-label="Loading Spinner"
+                data-testid="loader"
+            />
         }
     </div>
   );

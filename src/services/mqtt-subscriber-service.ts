@@ -56,7 +56,6 @@ export default function subscribe()
                     readingTypeId : readingType.id,
                     value         : Number(message.toString()) ?? 0
                 })
-                console.log(`Lectura guardada: ${reading.value}`)
             }
             else {
                 
