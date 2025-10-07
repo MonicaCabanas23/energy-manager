@@ -1,4 +1,4 @@
-import { createReadingDTO } from "@/dto/create-reading.dto";
+import { createReadingDTO } from "@/dto/readings/create-reading.dto";
 import { prisma } from "@/lib/prisma";
 
 export async function createReading(data: createReadingDTO) {
