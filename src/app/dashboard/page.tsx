@@ -1,10 +1,11 @@
 "use client"
 
 import Filters from "@/components/ui/Filters";
+import Input from "@/components/ui/Input";
 import MultipleSelect from "@/components/ui/MultipleSelect";
-import Select from "@/components/ui/Select";
 import Table from "@/components/ui/Table";
 import { useUser } from "@/contexts/UserContext";
+import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,19 +31,6 @@ ChartJS.register(
     Legend,
     ArcElement
 );
-
-const dummyData = [
-    { circuito: "Circuito 1", voltaje: "220V", intensidad: "5A", consumo: "1kWh", costo: "$100" },
-    { circuito: "Circuito 2", voltaje: "110V", intensidad: "10A", consumo: "2kWh", costo: "$200" },
-    { circuito: "Circuito 3", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 4", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 5", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 6", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 7", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 8", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 9", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-    { circuito: "Circuito 10", voltaje: "220V", intensidad: "15A", consumo: "3kWh", costo: "$300" },
-];
 
 const options = {
     responsive: true,
@@ -110,16 +98,50 @@ const dataPie = {
     ],
 };
 
+interface SelectOption {
+    value: string;
+    label: string;
+}
+
 export default function Dashboard() {
     const user = useUser()
+    const [circuits, setCircuits] = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
+    const [selectOptions, setSelectOptions] = useState<SelectOption[]>([])
     const [isLoading, setIsLoading] = useState<boolean>(true)
 
+    const fetchCircuits = async () => {
+        try {
+            const res = await fetch(`/api/circuits?${new URLSearchParams({
+                    espChipId: 'demo' // TODO: Cambiar por un espChipId asociado a la cuenta del usuario
+                }).toString()
+            }`);
+            
+            if (!res.ok) {
+                throw new Error(`Error ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            setCircuits(data)
+            
+            const options = data.map((c: CircuitWithReadingsAndCalculationsDTO) => ({
+                value: c.name,
+                label: c.name
+            }))
+
+            setSelectOptions(options)
+        } catch (error) {
+            console.error(error);
+        }
+    };
     useEffect(() => {
-        if(!user) {
-            /* router.push('/auth/login') */
+        const load = async () => {
+            await fetchCircuits()
+            setIsLoading(false)
         }
 
-        setIsLoading(false)
+        load()
+
     }, [])
 
   return (
@@ -127,52 +149,41 @@ export default function Dashboard() {
         {
             !isLoading ? 
             <>
-                <Filters classes="grid grid-cols-3 gap-4">
-                    <Select 
-                        label="Casa" 
-                        options={[
-                            {value: "casa_1", label: "Casa 1"},
-                            {value: "casa_2", label: "Casa 2"},
-                            {value: "casa_3", label: "Casa 3"},
-                        ]}
-                    />
-                    <MultipleSelect 
-                        label="Circuito" 
-                        options={[
-                            {value: "circuito_1", label: "Circuito 1"},
-                            {value: "circuito_2", label: "Circuito 2"},
-                            {value: "circuito_3", label: "Circuito 3"},
-                        ]}
-                        onChange={(value) => console.log(value)}
-                    />
-                    <MultipleSelect 
-                        label="Mes" 
-                        options={[
-                            {value: "enero", label: "Enero"},
-                            {value: "febrero", label: "Febrero"},
-                            {value: "marzo", label: "Marzo"},
-                        ]}
-                        onChange={(value) => console.log(value)}
+                <Filters classes="grid grid-cols-2 gap-4">
+                    {
+                        selectOptions.length > 0 ?
+                            <MultipleSelect 
+                                label="Circuito" 
+                                options={selectOptions}
+                                onChange={(value) => console.log(value)}
+                            /> 
+                        : null
+                    }
+                    <Input
+                        id='date'
+                        type='date'
+                        label="Fecha"
                     />
                 </Filters>
                 
                 <div className="max-w-full grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
-                    <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md p-6">
+                    {/* <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md p-6">
                         <Line options={options} data={dataLine} />
                     </div>
                     <div className="bg-white col-span-1 md:col-span-4 rounded-md shadow-md p-6">
                         <Pie data={dataPie} />
-                    </div>
+                    </div> */}
                     <div className="col-span-1 md:col-span-12 shadow-md rounded-bl-md rounded-br-md">
                         <Table 
                             definition={{
-                                circuito   : "Circuito",
-                                voltaje    : "Voltaje",
-                                intensidad : "Intensidad",
-                                consumo    : "Consumo",
-                                costo      : "Costo"
+                                name           : "Circuito",
+                                doublePolarity : "Doble polaridad",
+                                lastIntensity  : "Voltaje (V)",
+                                lastVoltage    : "Corriente (A)",
+                                power          : "Consumo (W)",
+                                cost           : "Costo"
                             }}
-                            data={dummyData}
+                            data={circuits}
                         />
                     </div>
                 </div>

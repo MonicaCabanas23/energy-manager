@@ -1,5 +1,5 @@
 import mqtt from 'mqtt';
-import { createSensor, getSensorByCodeAndPanel } from './sensor-service';
+import { getSensorByCodeAndPanel } from './sensor-service';
 import { getPanelByEspChipId } from './panel-service';
 import { createReading } from './reading-service';
 import { getReadingTypeByCode } from './reading-type-service';

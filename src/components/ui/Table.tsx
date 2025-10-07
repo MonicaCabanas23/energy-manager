@@ -1,11 +1,11 @@
 import { JSX } from "react";
 
-interface TableProps<T extends Record<string, JSX.Element | string | number>> {
+interface TableProps<T extends Record<string, JSX.Element | string | number | boolean>> {
     definition : { [key in keyof T]: string; };
     data       : Array<T>;
 }
 
-export default function Table<T extends Record<string, JSX.Element | string | number>>({
+export default function Table<T extends Record<string, JSX.Element | string | number | boolean>>({
     definition, 
     data 
 }: TableProps<T>

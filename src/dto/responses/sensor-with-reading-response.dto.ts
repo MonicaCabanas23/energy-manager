@@ -1,4 +1,5 @@
 import z from "zod"
+import { ReadingResponseDTO } from "./reading-response.dto"
 
 export const SensorWithReadingResponseDTO = z.object({
     id               : z.number(),
@@ -6,10 +7,7 @@ export const SensorWithReadingResponseDTO = z.object({
     name             : z.string(),
     doublePolarity   : z.boolean(),
     panelId          : z.number(),
-    intensity        : z.number().nullable(),
-    voltage          : z.number().nullable(),
-    power            : z.number().nullable(),
-    readingCreatedAt : z.date().nullable()
+    readings         : z.array(ReadingResponseDTO)
 })
 
 export type SensorWithReadingResponseDTO = z.infer<typeof SensorWithReadingResponseDTO> 

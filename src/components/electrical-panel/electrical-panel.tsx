@@ -1,28 +1,80 @@
 "use client"
 
-import { SensorWithReadingResponseDTO } from "@/dto/sensor-with-reading-response.dto";
-import { useState } from "react"
+import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
+import { useEffect, useState } from "react"
 import { MdDelete } from "react-icons/md";
 import { MdEdit } from "react-icons/md";
 import { MdInfo } from "react-icons/md";  
+import { number } from "zod";
 
 interface ElectricalPanelProps {
-  sensors              : SensorWithReadingResponseDTO[];
+  circuits              : CircuitWithReadingsAndCalculationsDTO[];
   classes             ?: string;
-  onViewSensorClick   ?: (item: SensorWithReadingResponseDTO) => void;
-  onEditSensorClick   ?: (item: SensorWithReadingResponseDTO) => void;
-  onDeleteSensorClick ?: (item: SensorWithReadingResponseDTO) => void;
 }
 
 export default function ElectricalPanel({ 
-  sensors = [], 
+  circuits = [], 
   classes = '',
-  onViewSensorClick,
-  onEditSensorClick,
-  onDeleteSensorClick,
 }: ElectricalPanelProps
 ) {
   const [selectedCircuit, setSelectedCircuit] = useState<number | null>(null)
+
+  const renderPhases = () => {
+    const regex = /^(L[12]|N)$/;
+
+    return circuits
+    .filter(c => regex.test(c.name))
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+    .map((c: CircuitWithReadingsAndCalculationsDTO, index: number)=> (
+      <div 
+        key={index}
+        className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center font-semibold"
+      >
+        <p>{c.name}</p>
+        { c.lastIntensity } A
+      </div>
+    ))
+  }
+
+  const renderNormalCircuits = () => {
+    const regex = /^C([1-9]|10)(,C([1-9]|10))*$/;
+
+    return circuits
+    .filter(c => regex.test(c.name))
+    .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+    .map((circuit: CircuitWithReadingsAndCalculationsDTO, index: number) => (
+      <div
+        key={index}
+        className={`
+          min-w-16 min-h-16 h-full text-gray-800 bg-white border-b-teal-600 border-b-3 
+          rounded-md cursor-pointer transition-all duration-200
+          flex flex-col items-center justify-center gap-2 p-2
+          shadow-md hover:shadow-lg
+          ${circuit.doublePolarity ? 'row-span-2' : 'row-span-1'}
+        `}
+        onClick={() => handleSensorClic(index)}
+      >
+        {/* Info */}
+          <p 
+            className="text-xs font-bold"
+          >
+            { circuit.name }
+          </p>
+          <div className="flex gap-2 font-bold justify-center items-center">
+            <p 
+              className="text-xs"
+            >
+              { circuit.lastIntensity ?? 0 }A
+            </p>
+            <p 
+              className="text-xs"
+            >
+              { circuit.lastVoltage ?? 0 }V
+            </p>
+          </div>
+      </div>
+    ))
+  }
 
   const handleSensorClic = (index: number) => {
     if(selectedCircuit === index + 1) {
@@ -34,7 +86,7 @@ export default function ElectricalPanel({
   }
 
   const getNumberOfRows = () => {
-    return Math.ceil(sensors.length / 2)
+    return Math.ceil(circuits.length / 2)
   }
 
   return (
@@ -47,10 +99,7 @@ export default function ElectricalPanel({
       <div className="min-w-48 md:w-1/2 flex flex-col m-auto bg-gray-300 rounded-md p-4 shadow-lg">
         <div className="flex flex-col items-center">
             <div className="w-full grid grid-cols-3 gap-4 items-center justify-center">
-              {/* TODO: Modificar con los que vienen de la base de datos */}
-                <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">10 A</div>
-                <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">9.5 A</div>
-                <div className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex items-center justify-center font-semibold">0.5 A</div>
+              { renderPhases() }
             </div>
             <div className="w-full grid grid-cols-3 gap-4 items-center justify-center">
                 <div className="m-auto w-4 h-8 bg-gray-800"></div>
@@ -64,58 +113,7 @@ export default function ElectricalPanel({
               className="col-span-2 grid grid-cols-2 gap-4 items-center justify-center"
               style={{gridTemplateRows: `repeat(${getNumberOfRows()}, minmax(0, 1fr))`}}
             >
-              {sensors.map((sensor, index) => {
-              const current = sensor.intensity ?? 0
-
-              return (
-                  <div
-                    key={index}
-                    className={`
-                      min-w-16 min-h-16 h-full text-gray-800 bg-white border-b-teal-600 border-b-3 
-                      rounded-md cursor-pointer transition-all duration-200
-                      flex flex-col items-center justify-center gap-2 p-2
-                      shadow-md hover:shadow-lg
-                      ${sensor.doublePolarity ? 'row-span-2' : 'row-span-1'}
-                    `}
-                    onClick={() => handleSensorClic(index)}
-                  >
-                    {/* Info */}
-                    <div className="w-full font-bold text-center">
-                      <p 
-                        className="text-xs"
-                      >
-                        { sensor.name }
-                      </p>
-                      <div className="text-sm">{current}A</div>
-                    </div>
-
-                    {/* Actions */}
-                    <div 
-                      className={`flex gap-2 transition-all text-white
-                      ${selectedCircuit === index + 1 ? 'h-6 opacity-100' : 'h-0 opacity-0'}`}
-                    >
-                      <button 
-                        className="bg-gray-500 rounded-md p-1  hover:cursor-pointer" 
-                        onClick={(e) => {e.stopPropagation(); onViewSensorClick?.(sensor)}}
-                      >
-                        <MdInfo />
-                      </button>
-                      <button 
-                        className="bg-teal-500 rounded-md p-1 hover:cursor-pointer" 
-                        onClick={(e) => {e.stopPropagation(); onEditSensorClick?.(sensor)}}
-                      >
-                        <MdEdit />
-                      </button>
-                      <button 
-                        className="bg-rose-500 rounded-md p-1 hover:cursor-pointer"
-                        onClick={(e) => {e.stopPropagation(); onDeleteSensorClick?.(sensor)}}
-                      >
-                        <MdDelete />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+              { renderNormalCircuits() }
             </div>
         </div>
       </div>
