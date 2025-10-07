@@ -48,10 +48,10 @@ export default function Circuitos() {
   }, [])
   
   return (
-    <div>
+    <div className="flex flex-col p-2">
       {
         !isLoading ? 
-        <ElectricalPanel 
+        <ElectricalPanel
           circuits={circuits}
         />
         :
