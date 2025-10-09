@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from 'react';
 
 interface Option {
@@ -9,18 +9,25 @@ interface Option {
 }
 
 interface MultipleSelectProps {
-    label     : string;
-    options   : Option[];
-    onChange ?: (selected: Option[]) => void;
+    label      : string;
+    options    : Option[];
+    selected  ?: Option[];
+    onChange  ?: (selected: Option[]) => void;
 }
 
 export default function MultipleSelect({
     label,
-    options, 
+    options,
+    selected,
     onChange
 }: MultipleSelectProps
 ) {
     const [selectedOptions, setSelectedOptions] = useState<Option[]>([])
+
+    useEffect(() => {
+        if(selected)
+            setSelectedOptions(selected)
+    }, [])
 
     /**
      * Handles option change
@@ -57,6 +64,7 @@ export default function MultipleSelect({
         })
 
         setSelectedOptions([])
+        onChange?.([])
     }
 
     /**
@@ -67,7 +75,13 @@ export default function MultipleSelect({
         return options.map(({value, label}, index) => {
             return (
                 <label htmlFor={value} className="inline-flex items-center gap-3" key={index}>
-                    <input type="checkbox" className="size-5 rounded border-gray-300 shadow-sm" id={value} onChange={handleOptionChange} />
+                    <input 
+                        type="checkbox" 
+                        className="size-5 rounded border-gray-300 shadow-sm" 
+                        id={value} 
+                        onChange={handleOptionChange}
+                        checked={selectedOptions.some(option => option.value === value)} 
+                    />
                     <span className="text-sm font-medium text-gray-700">{label}</span>
                 </label>
             )

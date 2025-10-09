@@ -1,8 +1,8 @@
 "use client"
 import ElectricalPanel                           from "@/components/electrical-panel/electrical-panel";
-import { CSSProperties, useEffect, useState }                   from "react";
+import { CSSProperties, useEffect, useState }    from "react";
 import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
-import { BarLoader } from "react-spinners";
+import { BarLoader }                             from "react-spinners";
 
 export default function Circuitos() {
   const [circuits, setCircuits] = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
@@ -15,7 +15,7 @@ export default function Circuitos() {
 
   const fetchCircuits = async () => {
     try {
-      const res = await fetch(`/api/circuits?${new URLSearchParams({
+      const res = await fetch(`/api/circuits-readings-calculations?${new URLSearchParams({
           espChipId: 'demo' // TODO: Cambiar por un espChipId asociado a la cuenta del usuario
         }).toString()
       }`);
@@ -41,7 +41,7 @@ export default function Circuitos() {
     // Set up interval to fetch data every 5 seconds (5000 milliseconds)
     const intervalId = setInterval(() => {
         fetchCircuits();
-    }, 5000);
+    }, 1000);
 
     // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);

@@ -25,12 +25,12 @@ export default function Filters({
             
             {/* Actions Buttons */}
             <div className="w-full flex items-center justify-end gap-4">
-                <button 
+                {/* <button 
                     className="flex rounded-md bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-teal-700"
                     onClick={onFilter}
                 >
                     <MdFilterAlt />
-                </button>
+                </button> */}
                 <button 
                     className="rounded-md bg-gray-100 px-5 py-2.5 text-sm font-medium text-teal-600 transition hover:text-teal-600/75 sm:block"
                     onClick={onClear}

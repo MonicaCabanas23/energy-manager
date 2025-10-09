@@ -21,6 +21,7 @@ import {
 import { CSSProperties, useEffect, useState } from "react";
 import { Line } from 'react-chartjs-2';
 import { Pie } from 'react-chartjs-2';
+import { CircuitDTO } from "@/dto/circuits/circuit.dto";
 
 ChartJS.register(
     CategoryScale,
@@ -99,16 +100,18 @@ const dataPie = {
     ],
 };
 
-interface SelectOption {
+interface Option {
     value: string;
     label: string;
 }
 
 export default function Dashboard() {
-    const user = useUser()
-    const [circuits, setCircuits] = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
-    const [selectOptions, setSelectOptions] = useState<SelectOption[]>([])
-    const [isLoading, setIsLoading] = useState<boolean>(true)
+    const [circuits, setCircuits]                 = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
+    const [selectOptions, setSelectOptions]       = useState<Option[]>([])
+    const [selectedCircuits, setSelectedCircuits] = useState<Option[]>([])
+    const [isLoading, setIsLoading]               = useState<boolean>(true)
+    const [startDate, setStartDate]               = useState<string>('')
+    const [endDate, setEndDate]                   = useState<string>('')
 
     const override: CSSProperties = {
         display : "block",
@@ -117,10 +120,11 @@ export default function Dashboard() {
 
     const fetchCircuits = async () => {
         try {
-            const res = await fetch(`/api/circuits?${new URLSearchParams({
-                    espChipId: 'demo' // TODO: Cambiar por un espChipId asociado a la cuenta del usuario
-                }).toString()
-            }`);
+            const params = new URLSearchParams({
+                espChipId : 'demo', // TODO Cambiar por un espChipId asociado a la cuenta del usuario
+            })
+
+            const res = await fetch(`/api/circuits-readings-calculations?${params.toString()}`);
             
             if (!res.ok) {
                 throw new Error(`Error ${res.status}`);
@@ -128,9 +132,7 @@ export default function Dashboard() {
 
             const data = await res.json();
 
-            setCircuits(data)
-            
-            const options = data.map((c: CircuitWithReadingsAndCalculationsDTO) => ({
+            const options = data.map((c: CircuitDTO) => ({
                 value: c.name,
                 label: c.name
             }))
@@ -139,45 +141,80 @@ export default function Dashboard() {
         } catch (error) {
             console.error(error);
         }
+    }
+
+    const fetchCircuitsWithReadingsAndCalculations = async () => {
+        try {
+            const params = new URLSearchParams({
+                espChipId : 'demo', // TODO Cambiar por un espChipId asociado a la cuenta del usuario
+            })
+
+            startDate                   && params.set('startDate', startDate)
+            endDate                     && params.set('endDate', endDate)
+            selectedCircuits.length > 0 && params.set('circuits', selectedCircuits.map(c => c.value).join('|'))
+
+            const res = await fetch(`/api/circuits-readings-calculations?${params.toString()}`);
+            
+            if (!res.ok) {
+                throw new Error(`Error ${res.status}`);
+            }
+
+            const data = await res.json();
+
+            setCircuits(data)
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     useEffect(() => {
         const load = async () => {
+            await fetchCircuitsWithReadingsAndCalculations()
             await fetchCircuits()
             setIsLoading(false)
         }
 
         load()
 
-        // Set up interval to fetch data every 5 seconds (5000 milliseconds)
+        // Set up interval to fetch data every second (1000 milliseconds)
         const intervalId = setInterval(() => {
-            fetchCircuits();
-        }, 5000);
+            fetchCircuitsWithReadingsAndCalculations();
+        }, 1000);
 
         // Clean up the interval when the component unmounts
         return () => clearInterval(intervalId);
 
-    }, [])
+    }, [startDate, endDate, selectedCircuits])
 
   return (
     <div className="flex flex-col gap-4 p-2">
         {
             !isLoading ? 
             <>
-                <Filters classes="grid grid-cols-2 gap-4">
+                <Filters classes="grid grid-cols-3 gap-4">
                     {
                         selectOptions.length > 0 ?
                             <MultipleSelect 
                                 label="Circuito" 
                                 options={selectOptions}
-                                onChange={(value) => console.log(value)}
+                                selected={selectedCircuits}
+                                onChange={(v) => setSelectedCircuits(v)}
                             /> 
                         : null
                     }
                     <Input
-                        id='date'
+                        id='startDate'
                         type='date'
-                        label="Fecha"
+                        label="Desde"
+                        value={startDate}
+                        onChange={(v) => { typeof v === 'string' && setStartDate(v)}}
+                    />
+                    <Input
+                        id='endDate'
+                        type='date'
+                        label="Hasta"
+                        value={endDate}
+                        onChange={(v) => { typeof v === 'string' && setEndDate(v)}}
                     />
                 </Filters>
                 

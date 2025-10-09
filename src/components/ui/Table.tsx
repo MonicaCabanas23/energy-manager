@@ -1,4 +1,5 @@
 import { JSX } from "react";
+import Input from "./Input";
 
 interface TableProps<T extends Record<string, JSX.Element | string | number | boolean>> {
     definition : { [key in keyof T]: string; };
@@ -42,7 +43,18 @@ export default function Table<T extends Record<string, JSX.Element | string | nu
      */
     const renderRowsColumns = (item: T) => {
         return Object.entries(item).map(([key, value], index) => (
-            <td className="px-3 py-2 whitespace-nowrap" key={key}>{value}</td>
+            <td className="px-3 py-2 whitespace-nowrap" key={key}>
+                {
+                    typeof value === 'boolean' ?
+                    <Input
+                        id={key}
+                        type="checkbox"
+                        disabled={true}
+                        value={value}
+                    />
+                    : value
+                }
+            </td>
         ))
     }
 
