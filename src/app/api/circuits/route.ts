@@ -20,6 +20,7 @@ export async function GET(
             circuits = await getCircuitsByPanel(panel)
         }
 
+        return NextResponse.json(circuits, {status: 200})
     } catch (error) {
         console.error(error)
         return NextResponse.json({message: 'Error fetching circuits'}, {status: 500})        

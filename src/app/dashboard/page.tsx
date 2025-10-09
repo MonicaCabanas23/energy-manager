@@ -124,14 +124,15 @@ export default function Dashboard() {
                 espChipId : 'demo', // TODO Cambiar por un espChipId asociado a la cuenta del usuario
             })
 
-            const res = await fetch(`/api/circuits-readings-calculations?${params.toString()}`);
+            const res = await fetch(`/api/circuits?${params.toString()}`);
             
             if (!res.ok) {
                 throw new Error(`Error ${res.status}`);
             }
 
-            const data = await res.json();
-
+            let data = await res.json();
+            data = data.filter((c: CircuitWithReadingsAndCalculationsDTO) => !['L1', 'L2', 'N'].includes(c.name) )
+            
             const options = data.map((c: CircuitDTO) => ({
                 value: c.name,
                 label: c.name
@@ -159,7 +160,8 @@ export default function Dashboard() {
                 throw new Error(`Error ${res.status}`);
             }
 
-            const data = await res.json();
+            let data = await res.json();
+            data = data.filter((c: CircuitWithReadingsAndCalculationsDTO) => !['L1', 'L2', 'N'].includes(c.name) )
 
             setCircuits(data)
         } catch (error) {

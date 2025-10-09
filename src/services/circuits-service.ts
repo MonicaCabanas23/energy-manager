@@ -88,8 +88,6 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 on a."name" = s."name"
                 ${agregateJoinClause}
             where 1=1
-            and s."name" not ilike '%L%'
-            and s."name" not ilike '%N%'
             and p.id = ${panel.id}
             ${whereClause}
             group by 
