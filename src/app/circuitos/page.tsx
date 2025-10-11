@@ -61,7 +61,7 @@ export default function Circuitos() {
       } finally {
         isRequestInProgressRef.current = false;
       }
-    }, 3000);
+    }, 1000);
 
     // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);
