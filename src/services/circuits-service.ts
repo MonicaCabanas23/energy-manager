@@ -52,20 +52,14 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
       ? Prisma.sql`AND ${Prisma.join(intensityJoinConditions, ` AND `)}`
       : Prisma.empty;
 
-  const agregateJoinClause =
-    aggregateJoinConditions.length > 0
-      ? Prisma.sql`AND ${Prisma.join(aggregateJoinConditions, ` AND `)}`
-      : Prisma.empty;
-
   const circuits = await prisma.$queryRaw<
     CircuitWithReadingsAndCalculationsDTO[]
   >`
-            with 
-            last_intensity as (
+            with last_intensity as (
                 select distinct on (r."sensorId")
                     r."sensorId",
                     r.value,
-                    r."createdAt"
+                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 join "Sensor" s on s.id = r."sensorId"
@@ -89,7 +83,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                 select distinct on (r."sensorId")
                     r."sensorId",
                     r.value,
-                    r."createdAt"
+                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 join "Sensor" s on s.id = r."sensorId"
@@ -114,7 +108,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                     s."name" as circuit,
                     s.code as code,
                     s."relatedCode" as "relatedCode",
-                    r."createdAt",
+                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
                     r.value as intensity
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
@@ -140,7 +134,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                     s."name" as circuit,
                     s.code as code,
                     s."relatedCode" as "relatedCode",
-                    r."createdAt",
+                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
                     r.value as voltage
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
@@ -165,53 +159,61 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                 select 
                     i.circuit,
                     i.intensity * v.voltage as "power",
-                    case 
-                        when	 i."createdAt" <= v."createdAt" then v."createdAt"
-                        else i."createdAt"
-                    end as "createdAt"
+                    i."createdAt"
                 from intensities i
                 join voltages v 
                         on v.code = i."relatedCode"
                         and i.code = v."relatedCode"
                         and i."createdAt" between v."createdAt" - interval '0.5 seconds' and v."createdAt" + interval '0.5 seconds'
+                group by 
+                    i.circuit,
+                    i.intensity,
+                    v.voltage,
+                    i."createdAt"
+                order by i."createdAt"
             ),
-            aggregates as (
+            energies as (
                 select
-                    p.circuit,
-                    sum(p."power") as power_sum,
-                    extract(epoch from max(p."createdAt") - min(p."createdAt")) / 3600 as hours,
-                    max(p."createdAt") as "maxCreatedAt",
-                    min(p."createdAt") as "minCreatedAt"
-                from powers p 
-                group by p.circuit
+                    circuit,
+                    "power" as current_power,
+                    lag("power") over (partition by circuit order by "createdAt") as prev_power,
+                    extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 as hours_diff,
+                        trunc(
+                            (lag("power") over (partition by circuit order by "createdAt") *
+                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 * 
+                            1/1000)::numeric, 4
+                        ) as kwh,
+                        trunc(
+                            (lag("power") over (partition by circuit order by "createdAt") *
+                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 * 
+                            1/1000 * 0.22)::numeric, 4
+                        ) as cost,
+                        "createdAt"
+                from powers
             )
-            select 
-                s."name",
+                select 
+                e.circuit,
                 s."doublePolarity",
                 sum(coalesce(lr_i.value, 0))                     as "lastIntensity",
                 sum(coalesce(lr_v.value, 0))                     as "lastVoltage",
-                coalesce(trunc((a.power_sum * a.hours / 1000)::numeric, 4), 0)        as "energy",
-                coalesce(trunc((a.power_sum * a.hours / 1000 * 0.22)::numeric, 4), 0) as "cost"
+                sum(e.kwh) as energy,
+                sum(e.cost) as cost
             from "Sensor" s
             join "Panel" p on p.id = s."panelId"
-            left join last_intensity lr_i 
+            join last_intensity lr_i 
                 on lr_i."sensorId" = s.id 
                 ${intensityJoinClause}
             left join last_voltage lr_v 
                 on lr_v."sensorId" = s.id 
                 ${voltageJoinClause}
-            left join aggregates a 
-                on a.circuit = s."name"
-                ${agregateJoinClause}
+            left join energies e
+                on e.circuit = s."name"
             where 1=1
-                and p.id = ${panel.id}
-                ${whereClause}
+                and e.kwh > 0
             group by 
                 s."name",
                 s."doublePolarity",
-                a.power_sum,
-                a.hours
-            order by s."name";
+                e.circuit;
         `;
 
   return circuits;
