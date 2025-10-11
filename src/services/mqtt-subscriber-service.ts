@@ -3,9 +3,15 @@ import { getSensorByCodeAndPanel } from './sensor-service';
 import { getPanelByEspChipId } from './panel-service';
 import { createReading } from './reading-service';
 import { getReadingTypeByCode } from './reading-type-service';
+import { emitSensorUpdate, getIo } from '@/lib/socket';
+import { getCiruitsWithLastReadingAndCalculationsByPanel, getCircuitsWithCalculationsGroupedByMonth } from './circuits-service';
+import type { CircuitBindingsDTO } from '@/dto/circuits/circuit-bindings.dto';
 
 export default function subscribe()
 {
+    // Initialize WebSocket server once
+    getIo();
+
     const mqttUri = process.env.MQTT_URI ?? ''; // Or wss:// for secure websockets
     const espChipId = 'demo' // TODO: Cambiar por el espChipId obtenido de la sesión del usuario
 
@@ -56,6 +62,33 @@ export default function subscribe()
                     readingTypeId : readingType.id,
                     value         : Number(message.toString()) ?? 0
                 })
+
+                // Fetch and emit targeted calculations only for the affected circuit
+                try {
+                    const circuitName = sensor.name
+
+                    const bindingsReadings: CircuitBindingsDTO = {
+                        startDate: null,
+                        endDate: null,
+                        circuits: circuitName,
+                    }
+
+                    const readingsAndCalc = await getCiruitsWithLastReadingAndCalculationsByPanel(panel, bindingsReadings)
+
+                    emitSensorUpdate(espChipId, circuitName, 'circuits_readings_calculations', readingsAndCalc)
+
+                    const bindingsMonthly: CircuitBindingsDTO = {
+                        startDate: null,
+                        endDate: null,
+                        circuits: circuitName,
+                    }
+
+                    const monthlyCalcs = await getCircuitsWithCalculationsGroupedByMonth(panel, bindingsMonthly)
+
+                    emitSensorUpdate(espChipId, circuitName, 'circuits_calculations', monthlyCalcs)
+                } catch (err) {
+                    console.error('Error computing calculations after MQTT message:', err)
+                }
             }
             else {
                 

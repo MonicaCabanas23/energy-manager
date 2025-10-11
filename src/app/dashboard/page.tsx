@@ -17,7 +17,8 @@ import {
   LineElement,
   ArcElement,
 } from "chart.js";
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
+import { io, Socket } from 'socket.io-client'
 import { Line } from 'react-chartjs-2';
 import { CircuitDTO } from "@/dto/circuits/circuit.dto";
 import { CircuitWithCalculationsGroupedByMonth } from "@/dto/circuits/circuit-with-calculations-grouped-by-month.dto";
@@ -67,6 +68,8 @@ interface Option {
 interface LineGraphDataSet {
     label: string;
     data: number[];
+    borderColor?: string;
+    backgroundColor?: string;
 }
 
 export default function Dashboard() {
@@ -79,6 +82,7 @@ export default function Dashboard() {
     const [isLoading, setIsLoading]               = useState<boolean>(true)
     const [startDate, setStartDate]               = useState<string>('')
     const [endDate, setEndDate]                   = useState<string>('')
+    const socketRef = useRef<Socket | null>(null)
 
     const override: CSSProperties = {
         display : "block",
@@ -110,7 +114,7 @@ export default function Dashboard() {
         return formatter.format(date);
     }
 
-    const fetchCircuits = async () => {
+    const fetchCircuits = async (): Promise<Option[]> => {
         try {
             const params = new URLSearchParams({
                 espChipId : 'demo', // TODO Cambiar por un espChipId asociado a la cuenta del usuario
@@ -131,8 +135,10 @@ export default function Dashboard() {
             }))
 
             setSelectOptions(options)
+            return options
         } catch (error) {
             console.error(error);
+            return []
         }
     }
 
@@ -214,25 +220,129 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        const load = async () => {
-            await fetchCircuits()
-            await fetchCircuitsWithReadingsAndCalculations()
-            await fetchCircuitsWithCalculationsGroupedByMonth()
+        const url = process.env.NEXT_PUBLIC_SOCKET_URL ?? 'ws://localhost:3001'
+
+        const setup = async () => {
+            // Inicializa el suscriptor MQTT en backend (idempotente)
+            await fetch('/api/mqtt')
+
+            const options = await fetchCircuits()
+
+            const socket = io(url, { transports: ['websocket'] })
+            socketRef.current = socket
+
+            // Manejo de actualizaciones puntuales
+            socket.on('circuits_readings_calculations', (payload: CircuitWithReadingsAndCalculationsDTO[]) => {
+                const data = payload.filter((c) => !['L1', 'L2', 'N'].includes(c.name))
+                setTableCircuits((prev) => {
+                    const map = new Map(prev.map((c) => [c.name, c]))
+                    data.forEach((c) => map.set(c.name, c))
+                    return Array.from(map.values())
+                })
+            })
+
+            socket.on('circuits_calculations', (payload: CircuitWithCalculationsGroupedByMonth[]) => {
+                const data = payload.filter((c) => !['L1', 'L2', 'N'].includes(c.name))
+                // Actualiza labels si vienen del backend
+                const anyMonths = data.find((c) => c.months.length > 0)?.months
+                if (anyMonths && anyMonths.length) {
+                    setMonthLabels(anyMonths.map((m) => getMonthNameInSpanish(m - 1)))
+                }
+
+                setEnergyDataSet((prev) => {
+                    const map = new Map(prev.map((d) => [d.label, d]))
+                    data.forEach((c, index) => {
+                        const hue = (index * 360 / Math.max(data.length, 1)) % 360
+                        const borderColor = `hsl(${hue}, 70%, 50%)`
+                        const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`
+                        map.set(c.name, {
+                            label: c.name,
+                            data: c.energies,
+                            borderColor,
+                            backgroundColor,
+                        })
+                    })
+                    return Array.from(map.values())
+                })
+
+                setCostDataSet((prev) => {
+                    const map = new Map(prev.map((d) => [d.label, d]))
+                    data.forEach((c, index) => {
+                        const hue = (index * 360 / Math.max(data.length, 1)) % 360
+                        const borderColor = `hsl(${hue}, 70%, 50%)`
+                        const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`
+                        map.set(c.name, {
+                            label: c.name,
+                            data: c.costs,
+                            borderColor,
+                            backgroundColor,
+                        })
+                    })
+                    return Array.from(map.values())
+                })
+            })
+
+            // Solicita snapshot inicial para todos los circuitos disponibles
+            // Filtra fases L1/L2/N fuera del snapshot
+            const allCircuitNames = options
+                .map((o) => o.value)
+                .filter((name) => !['L1', 'L2', 'N'].includes(name))
+
+            const espChipId = 'demo'
+            if (allCircuitNames.length > 0) {
+                // Suscribir a todos los circuitos al inicio para recibir actualizaciones
+                allCircuitNames.forEach((name) => {
+                    socket.emit('subscribe', { espChipId, circuitName: name })
+                })
+
+                socket.emit('request_initial_data', {
+                    espChipId,
+                    circuits: allCircuitNames.join('|'),
+                    startDate: startDate || null,
+                    endDate: endDate || null,
+                })
+            }
+
             setIsLoading(false)
         }
 
-        load()
+        setup()
 
-        // Set up interval to fetch data every second (1000 milliseconds)
-        const intervalId = setInterval(() => {
-            fetchCircuitsWithCalculationsGroupedByMonth();
-            fetchCircuitsWithReadingsAndCalculations();
-        }, 1000);
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect()
+                socketRef.current = null
+            }
+        }
+    }, [])
 
-        // Clean up the interval when the component unmounts
-        return () => clearInterval(intervalId);
+    // Suscribe/desuscribe por circuitos seleccionados
+    useEffect(() => {
+        const socket = socketRef.current
+        if (!socket) return
+        const espChipId = 'demo'
 
-    }, [startDate, endDate, selectedCircuits])
+        // Primero desuscribe todo
+        // En un caso real, llevaríamos un tracking de suscripciones previas
+        selectOptions.forEach((opt) => {
+            socket.emit('unsubscribe', { espChipId, circuitName: opt.value })
+        })
+
+        // Suscribe a los circuitos seleccionados actuales
+        selectedCircuits.forEach((opt) => {
+            socket.emit('subscribe', { espChipId, circuitName: opt.value })
+        })
+        // También puede solicitar datos iniciales para los seleccionados
+        if (selectedCircuits.length > 0) {
+            const names = selectedCircuits.map((o) => o.value)
+            socket.emit('request_initial_data', {
+                espChipId,
+                circuits: names.join('|'),
+                startDate: startDate || null,
+                endDate: endDate || null,
+            })
+        }
+    }, [selectedCircuits])
 
   return (
     <div className="flex flex-col gap-4 p-2">
