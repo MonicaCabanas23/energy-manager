@@ -55,25 +55,57 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 order by r."sensorId", rt.code, r."createdAt" desc
             ),
-            aggregates as (
+            intensities as (
                 select 
-                    s."name",
-                    avg(r.value) filter (where rt.code = 'corriente')                  as avg_corriente,
-                    coalesce(avg(r.value) filter (where rt.code = 'voltaje'), 0)       as avg_voltaje,
-                    extract(epoch from max(r."createdAt") - min(r."createdAt")) / 3600 as horas,
-                    max(r."createdAt")                                                 as "createdAt"
+                    s."name" as circuit,
+                    r."createdAt",
+                    r.value as intensity
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 join "Sensor" s on s.id = r."sensorId"
-                group by s."name"
+                where rt.code = 'corriente'
+                and r.value > 0
+            ),
+            voltages as (
+                select 
+                    s."name" as circuit,
+                    r."createdAt",
+                    r.value as voltage
+                from "Reading" r
+                join "ReadingType" rt on rt.id = r."readingTypeId"
+                join "Sensor" s on s.id = r."sensorId"
+                where rt.code = 'voltaje'
+                and r.value > 0
+            ),
+            powers as (
+                select 
+                    i.circuit,
+                    i.intensity * v.voltage as "power",
+                    case 
+                        when	 i."createdAt" <= v."createdAt" then v."createdAt"
+                        when i."createdAt" > v."createdAt" then i."createdAt"
+                    end as "createdAt"
+                from intensities i
+                join voltages v 
+                        on v.circuit = i.circuit
+                        and abs(extract(epoch from (i."createdAt" - v."createdAt"))) < 0.5
+            ),
+            aggregates as (
+                select
+                    p.circuit,
+                    sum(p."power") as power_sum,
+                    extract(epoch from max(p."createdAt") - min(p."createdAt")) / 3600 as hours,
+                    max(p."createdAt") as "createdAt"
+                from powers p 
+                group by p.circuit
             )
             select 
                 s."name",
                 s."doublePolarity",
-                sum(coalesce(lr_i.value, 0))                                 as "lastIntensity",
-                sum(coalesce(lr_v.value, 0))                                 as "lastVoltage",
-                coalesce(a.avg_corriente * a.avg_voltaje * a.horas, 0)       as "power",
-                coalesce(a.avg_corriente * a.avg_voltaje * a.horas * 0.3, 0) as "cost"
+                sum(coalesce(lr_i.value, 0))                     as "lastIntensity",
+                sum(coalesce(lr_v.value, 0))                     as "lastVoltage",
+                coalesce(trunc((a.power_sum * a.hours / 1000)::numeric, 4), 0)        as "energy",
+                coalesce(trunc((a.power_sum * a.hours / 1000 * 0.22)::numeric, 4), 0) as "cost"
             from "Sensor" s
             join "Panel" p on p.id = s."panelId"
             left join last_readings lr_i 
@@ -85,17 +117,16 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 and lr_v.code = 'voltaje'
                 ${voltageJoinClause}
             left join aggregates a 
-                on a."name" = s."name"
+                on a.circuit = s."name"
                 ${agregateJoinClause}
             where 1=1
-            and p.id = ${panel.id}
-            ${whereClause}
+                and p.id = ${panel.id}
+                ${whereClause}
             group by 
                 s."name",
                 s."doublePolarity",
-                a.avg_corriente,
-                a.avg_voltaje,
-                a.horas
+                a.power_sum,
+                a.hours
             order by s."name";
         `;
     

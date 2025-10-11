@@ -234,8 +234,8 @@ export default function Dashboard() {
                                 doublePolarity : "Doble polaridad",
                                 lastIntensity  : "Voltaje (V)",
                                 lastVoltage    : "Corriente (A)",
-                                power          : "Consumo (W)",
-                                cost           : "Costo"
+                                energy         : "Consumo (kWh)",
+                                cost           : "Costo (USD)"
                             }}
                             data={circuits}
                         />

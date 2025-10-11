@@ -5,7 +5,7 @@ export const CircuitWithReadingsAndCalculationsDTO = z.object({
     doublePolarity: z.boolean(),
     lastIntensity : z.number(),
     lastVoltage   : z.number(),
-    power         : z.number(),
+    energy        : z.number(),
     cost          : z.number(),
 }) 
 
