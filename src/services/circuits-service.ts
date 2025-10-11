@@ -12,7 +12,6 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
   const whereConditions: Prisma.Sql[] = [];
   const voltageJoinConditions: Prisma.Sql[] = [];
   const intensityJoinConditions: Prisma.Sql[] = [];
-  const aggregateJoinConditions: Prisma.Sql[] = [];
 
   // Fechas reutilizables para filtros dentro de CTEs
   const startDateGlobal = bindings.startDate
@@ -24,13 +23,11 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
     const startDate = new Date(bindings.startDate);
     voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" >= ${startDate}`);
     intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" >= ${startDate}`);
-    aggregateJoinConditions.push(Prisma.sql`a."minCreatedAt" >= ${startDate}`);
   }
   if (bindings.endDate) {
     const endDate = new Date(bindings.endDate);
     voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" <= ${endDate}`);
     intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" <= ${endDate}`);
-    aggregateJoinConditions.push(Prisma.sql`a."maxCreatedAt" <= ${endDate}`);
   }
   if (bindings.circuits) {
     const circuits = bindings.circuits.split("|");
@@ -55,168 +52,168 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
   const circuits = await prisma.$queryRaw<
     CircuitWithReadingsAndCalculationsDTO[]
   >`
-            with last_intensity as (
-                select distinct on (r."sensorId")
-                    r."sensorId",
-                    r.value,
-                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
-                from "Reading" r
-                join "ReadingType" rt on rt.id = r."readingTypeId"
-                join "Sensor" s on s.id = r."sensorId"
-                join "Panel" p on p.id = s."panelId"
-                where rt.code = 'corriente'
-                  and p.id = ${panel.id}
-                  ${whereClause}
-                  ${
-                    startDateGlobal
-                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
-                      : Prisma.empty
-                  }
-                  ${
-                    endDateGlobal
-                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
-                      : Prisma.empty
-                  }
-                order by r."sensorId", r."createdAt" desc
-            ),
-            last_voltage as (
-                select distinct on (r."sensorId")
-                    r."sensorId",
-                    r.value,
-                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
-                from "Reading" r
-                join "ReadingType" rt on rt.id = r."readingTypeId"
-                join "Sensor" s on s.id = r."sensorId"
-                join "Panel" p on p.id = s."panelId"
-                where rt.code = 'voltaje'
-                  and p.id = ${panel.id}
-                  ${whereClause}
-                  ${
-                    startDateGlobal
-                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
-                      : Prisma.empty
-                  }
-                  ${
-                    endDateGlobal
-                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
-                      : Prisma.empty
-                  }
-                order by r."sensorId", r."createdAt" desc
-            ),
-            intensities as (
-                select 
-                    s."name",
-                    s.code as code,
-                    s."relatedCode" as "relatedCode",
-                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
-                    r.value as intensity
-                from "Reading" r
-                join "ReadingType" rt on rt.id = r."readingTypeId"
-                join "Sensor" s on s.id = r."sensorId"
-                join "Panel" p on p.id = s."panelId"
-                where rt.code = 'corriente'
-                  and r.value > 0
-                  and p.id = ${panel.id}
-                  ${whereClause}
-                  ${
-                    startDateGlobal
-                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
-                      : Prisma.empty
-                  }
-                  ${
-                    endDateGlobal
-                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
-                      : Prisma.empty
-                  }
-            ),
-            voltages as (
-                select 
-                    s."name",
-                    s.code as code,
-                    s."relatedCode" as "relatedCode",
-                    r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
-                    r.value as voltage
-                from "Reading" r
-                join "ReadingType" rt on rt.id = r."readingTypeId"
-                join "Sensor" s on s.id = r."sensorId"
-                join "Panel" p on p.id = s."panelId"
-                where rt.code = 'voltaje'
-                  and r.value > 0
-                  and p.id = ${panel.id}
-                  ${whereClause}
-                  ${
-                    startDateGlobal
-                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
-                      : Prisma.empty
-                  }
-                  ${
-                    endDateGlobal
-                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
-                      : Prisma.empty
-                  }
-            ),
-            powers as (
-                select 
-                    i."name",
-                    i.intensity * v.voltage as "power",
-                    i."createdAt"
-                from intensities i
-                join voltages v 
-                        on v.code = i."relatedCode"
-                        and i.code = v."relatedCode"
-                        and i."createdAt" between v."createdAt" - interval '0.5 seconds' and v."createdAt" + interval '0.5 seconds'
-                group by 
-                    i."name",
-                    i.intensity,
-                    v.voltage,
-                    i."createdAt"
-                order by i."createdAt"
-            ),
-            energies as (
-                select
-                    "name",
-                    "power" as current_power,
-                    lag("power") over (partition by "name" order by "createdAt") as prev_power,
-                    extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 as hours_diff,
-                        trunc(
-                            (lag("power") over (partition by "name" order by "createdAt") *
-                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
-                            1/1000)::numeric, 4
-                        ) as kwh,
-                        trunc(
-                            (lag("power") over (partition by "name" order by "createdAt") *
-                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
-                            1/1000 * 0.22)::numeric, 4
-                        ) as cost,
-                        "createdAt"
-                from powers
-            )
-                select 
-                e."name",
-                s."doublePolarity",
-                sum(coalesce(lr_i.value, 0))                     as "lastIntensity",
-                sum(coalesce(lr_v.value, 0))                     as "lastVoltage",
-                sum(e.kwh) as energy,
-                sum(e.cost) as cost
-            from "Sensor" s
+        with last_intensity as (
+            select distinct on (r."sensorId")
+                r."sensorId",
+                trunc(r.value::numeric, 4) as value,
+                r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
+            from "Reading" r
+            join "ReadingType" rt on rt.id = r."readingTypeId"
+            join "Sensor" s on s.id = r."sensorId"
             join "Panel" p on p.id = s."panelId"
-            join last_intensity lr_i 
-                on lr_i."sensorId" = s.id 
-                ${intensityJoinClause}
-            left join last_voltage lr_v 
-                on lr_v."sensorId" = s.id 
-                ${voltageJoinClause}
-            left join energies e
-                on e."name" = s."name"
-            where 1=1
-                and e.kwh > 0
+            where rt.code = 'corriente'
+                and p.id = ${panel.id}
                 ${whereClause}
-            group by 
+                ${
+                startDateGlobal
+                    ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                    : Prisma.empty
+                }
+                ${
+                endDateGlobal
+                    ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                    : Prisma.empty
+                }
+            order by r."sensorId", r."createdAt" desc
+        ),
+        last_voltage as (
+            select distinct on (r."sensorId")
+                r."sensorId",
+                trunc(r.value::numeric, 4) as value,
+                r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
+            from "Reading" r
+            join "ReadingType" rt on rt.id = r."readingTypeId"
+            join "Sensor" s on s.id = r."sensorId"
+            join "Panel" p on p.id = s."panelId"
+            where rt.code = 'voltaje'
+                and p.id = ${panel.id}
+                ${whereClause}
+                ${
+                startDateGlobal
+                    ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                    : Prisma.empty
+                }
+                ${
+                endDateGlobal
+                    ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                    : Prisma.empty
+                }
+            order by r."sensorId", r."createdAt" desc
+        ),
+        intensities as (
+            select 
                 s."name",
-                s."doublePolarity",
-                e."name";
-        `;
-  console.log(circuits);
+                s.code as code,
+                s."relatedCode" as "relatedCode",
+                r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
+                r.value as intensity
+            from "Reading" r
+            join "ReadingType" rt on rt.id = r."readingTypeId"
+            join "Sensor" s on s.id = r."sensorId"
+            join "Panel" p on p.id = s."panelId"
+            where rt.code = 'corriente'
+                and r.value > 0
+                and p.id = ${panel.id}
+                ${whereClause}
+                ${
+                startDateGlobal
+                    ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                    : Prisma.empty
+                }
+                ${
+                endDateGlobal
+                    ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                    : Prisma.empty
+                }
+        ),
+        voltages as (
+            select 
+                s."name",
+                s.code as code,
+                s."relatedCode" as "relatedCode",
+                r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
+                r.value as voltage
+            from "Reading" r
+            join "ReadingType" rt on rt.id = r."readingTypeId"
+            join "Sensor" s on s.id = r."sensorId"
+            join "Panel" p on p.id = s."panelId"
+            where rt.code = 'voltaje'
+                and r.value > 0
+                and p.id = ${panel.id}
+                ${whereClause}
+                ${
+                startDateGlobal
+                    ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                    : Prisma.empty
+                }
+                ${
+                endDateGlobal
+                    ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                    : Prisma.empty
+                }
+        ),
+        powers as (
+            select 
+                i."name",
+                i.intensity * v.voltage as "power",
+                i."createdAt"
+            from intensities i
+            join voltages v 
+                    on v.code = i."relatedCode"
+                    and i.code = v."relatedCode"
+                    and i."createdAt" between v."createdAt" - interval '0.5 seconds' and v."createdAt" + interval '0.5 seconds'
+            group by 
+                i."name",
+                i.intensity,
+                v.voltage,
+                i."createdAt"
+            order by i."createdAt"
+        ),
+        energies as (
+            select
+                "name",
+                "power" as current_power,
+                lag("power") over (partition by "name" order by "createdAt") as prev_power,
+                extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 as hours_diff,
+                    trunc(
+                        (lag("power") over (partition by "name" order by "createdAt") *
+                        extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
+                        1/1000)::numeric, 4
+                    ) as kwh,
+                    trunc(
+                        (lag("power") over (partition by "name" order by "createdAt") *
+                        extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
+                        1/1000 * 0.22)::numeric, 4
+                    ) as cost,
+                    "createdAt"
+            from powers
+        )
+            select 
+            e."name",
+            s."doublePolarity",
+            sum(coalesce(lr_i.value, 0)) as "lastIntensity",
+            sum(coalesce(lr_v.value, 0)) as "lastVoltage",
+            sum(e.kwh)                   as energy,
+            sum(e.cost)                  as cost
+        from "Sensor" s
+        join "Panel" p on p.id = s."panelId"
+        left join last_intensity lr_i 
+            on lr_i."sensorId" = s.id 
+            ${intensityJoinClause}
+        left join last_voltage lr_v 
+            on lr_v."sensorId" = s.id 
+            ${voltageJoinClause}
+        left join energies e
+            on e."name" = s."name"
+        where 1=1
+            and e.kwh > 0
+            ${whereClause}
+        group by 
+            s."name",
+            s."doublePolarity",
+            e."name";
+    `;
+
   return circuits;
 }
 
