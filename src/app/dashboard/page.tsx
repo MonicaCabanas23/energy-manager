@@ -377,12 +377,17 @@ export default function Dashboard() {
                 </Filters>
                 
                 <div className="max-w-full grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
+                    {/** 
+                    
                     <div className="bg-white col-span-1 md:col-span-6 rounded-md shadow-md p-6">
                         <Line options={energyOptions} data={energyDataLine} />
                     </div>
                     <div className="bg-white col-span-1 md:col-span-6 rounded-md shadow-md p-6">
                         <Line options={costOptions} data={costDataLine} />
                     </div>
+                    
+                    */}
+                    
                     <div className="col-span-1 md:col-span-12 shadow-md rounded-bl-md rounded-br-md">
                         <Table 
                             definition={{
