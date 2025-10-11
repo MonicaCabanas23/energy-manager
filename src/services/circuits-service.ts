@@ -5,56 +5,109 @@ import { CircuitDTO } from "@/dto/circuits/circuit.dto";
 import { prisma } from "@/lib/prisma";
 import { Panel, Prisma } from "@prisma/client";
 
-export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Panel, bindings: CircuitBindingsDTO)
-{
-    const whereConditions         : Prisma.Sql[] = [];
-    const voltageJoinConditions   : Prisma.Sql[] = [];
-    const intensityJoinConditions : Prisma.Sql[] = [];
-    const aggregateJoinConditions : Prisma.Sql[] = [];
+export async function getCiruitsWithLastReadingAndCalculationsByPanel(
+  panel: Panel,
+  bindings: CircuitBindingsDTO
+) {
+  const whereConditions: Prisma.Sql[] = [];
+  const voltageJoinConditions: Prisma.Sql[] = [];
+  const intensityJoinConditions: Prisma.Sql[] = [];
+  const aggregateJoinConditions: Prisma.Sql[] = [];
 
-    if (bindings.startDate) {
-        const startDate = new Date(bindings.startDate)
-        voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" >= ${startDate}`);
-        intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" >= ${startDate}`);
-        aggregateJoinConditions.push(Prisma.sql`a."minCreatedAt" >= ${startDate}`);
-    }
-    if (bindings.endDate) {
-        const endDate = new Date(bindings.endDate)
-        voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" <= ${endDate}`);
-        intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" <= ${endDate}`);
-        aggregateJoinConditions.push(Prisma.sql`a."maxCreatedAt" <= ${endDate}`);
-    }
-    if (bindings.circuits) {
-        const circuits = bindings.circuits.split('|');
-        whereConditions.push(Prisma.sql`s."name" IN (${Prisma.join(circuits)})`);
-    }
+  // Fechas reutilizables para filtros dentro de CTEs
+  const startDateGlobal = bindings.startDate
+    ? new Date(bindings.startDate)
+    : null;
+  const endDateGlobal = bindings.endDate ? new Date(bindings.endDate) : null;
 
-    const whereClause = whereConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(whereConditions, ` AND `)}`
-    : Prisma.empty;
+  if (bindings.startDate) {
+    const startDate = new Date(bindings.startDate);
+    voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" >= ${startDate}`);
+    intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" >= ${startDate}`);
+    aggregateJoinConditions.push(Prisma.sql`a."minCreatedAt" >= ${startDate}`);
+  }
+  if (bindings.endDate) {
+    const endDate = new Date(bindings.endDate);
+    voltageJoinConditions.push(Prisma.sql`lr_v."createdAt" <= ${endDate}`);
+    intensityJoinConditions.push(Prisma.sql`lr_i."createdAt" <= ${endDate}`);
+    aggregateJoinConditions.push(Prisma.sql`a."maxCreatedAt" <= ${endDate}`);
+  }
+  if (bindings.circuits) {
+    const circuits = bindings.circuits.split("|");
+    whereConditions.push(Prisma.sql`s."name" IN (${Prisma.join(circuits)})`);
+  }
 
-    const voltageJoinClause = voltageJoinConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(voltageJoinConditions, ` AND `)}`
-    : Prisma.empty;
-    
-    const intensityJoinClause = intensityJoinConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(intensityJoinConditions, ` AND `)}`
-    : Prisma.empty;
+  const whereClause =
+    whereConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(whereConditions, ` AND `)}`
+      : Prisma.empty;
 
-    const agregateJoinClause = aggregateJoinConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(aggregateJoinConditions, ` AND `)}`
-    : Prisma.empty;
+  const voltageJoinClause =
+    voltageJoinConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(voltageJoinConditions, ` AND `)}`
+      : Prisma.empty;
 
-    const circuits = await prisma.$queryRaw<CircuitWithReadingsAndCalculationsDTO[]>`
-            with last_readings as (
-                select distinct on (r."sensorId", rt.code)
+  const intensityJoinClause =
+    intensityJoinConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(intensityJoinConditions, ` AND `)}`
+      : Prisma.empty;
+
+  const agregateJoinClause =
+    aggregateJoinConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(aggregateJoinConditions, ` AND `)}`
+      : Prisma.empty;
+
+  const circuits = await prisma.$queryRaw<
+    CircuitWithReadingsAndCalculationsDTO[]
+  >`
+            with 
+            last_intensity as (
+                select distinct on (r."sensorId")
                     r."sensorId",
-                    rt.code,
                     r.value,
                     r."createdAt"
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
-                order by r."sensorId", rt.code, r."createdAt" desc
+                join "Sensor" s on s.id = r."sensorId"
+                join "Panel" p on p.id = s."panelId"
+                where rt.code = 'corriente'
+                  and p.id = ${panel.id}
+                  ${whereClause}
+                  ${
+                    startDateGlobal
+                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                      : Prisma.empty
+                  }
+                  ${
+                    endDateGlobal
+                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                      : Prisma.empty
+                  }
+                order by r."sensorId", r."createdAt" desc
+            ),
+            last_voltage as (
+                select distinct on (r."sensorId")
+                    r."sensorId",
+                    r.value,
+                    r."createdAt"
+                from "Reading" r
+                join "ReadingType" rt on rt.id = r."readingTypeId"
+                join "Sensor" s on s.id = r."sensorId"
+                join "Panel" p on p.id = s."panelId"
+                where rt.code = 'voltaje'
+                  and p.id = ${panel.id}
+                  ${whereClause}
+                  ${
+                    startDateGlobal
+                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                      : Prisma.empty
+                  }
+                  ${
+                    endDateGlobal
+                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                      : Prisma.empty
+                  }
+                order by r."sensorId", r."createdAt" desc
             ),
             intensities as (
                 select 
@@ -66,8 +119,21 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 join "Sensor" s on s.id = r."sensorId"
+                join "Panel" p on p.id = s."panelId"
                 where rt.code = 'corriente'
-                and r.value > 0
+                  and r.value > 0
+                  and p.id = ${panel.id}
+                  ${whereClause}
+                  ${
+                    startDateGlobal
+                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                      : Prisma.empty
+                  }
+                  ${
+                    endDateGlobal
+                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                      : Prisma.empty
+                  }
             ),
             voltages as (
                 select 
@@ -79,8 +145,21 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 from "Reading" r
                 join "ReadingType" rt on rt.id = r."readingTypeId"
                 join "Sensor" s on s.id = r."sensorId"
+                join "Panel" p on p.id = s."panelId"
                 where rt.code = 'voltaje'
-                and r.value > 0
+                  and r.value > 0
+                  and p.id = ${panel.id}
+                  ${whereClause}
+                  ${
+                    startDateGlobal
+                      ? Prisma.sql`AND r."createdAt" >= ${startDateGlobal}`
+                      : Prisma.empty
+                  }
+                  ${
+                    endDateGlobal
+                      ? Prisma.sql`AND r."createdAt" <= ${endDateGlobal}`
+                      : Prisma.empty
+                  }
             ),
             powers as (
                 select 
@@ -92,10 +171,9 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                     end as "createdAt"
                 from intensities i
                 join voltages v 
-                        on v.circuit = i.circuit
-                        and v.code = i."relatedCode"
+                        on v.code = i."relatedCode"
                         and i.code = v."relatedCode"
-                        and abs(extract(epoch from (i."createdAt" - v."createdAt"))) < 0.5
+                        and i."createdAt" between v."createdAt" - interval '0.5 seconds' and v."createdAt" + interval '0.5 seconds'
             ),
             aggregates as (
                 select
@@ -116,13 +194,11 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 coalesce(trunc((a.power_sum * a.hours / 1000 * 0.22)::numeric, 4), 0) as "cost"
             from "Sensor" s
             join "Panel" p on p.id = s."panelId"
-            left join last_readings lr_i 
+            left join last_intensity lr_i 
                 on lr_i."sensorId" = s.id 
-                and lr_i.code = 'corriente'
                 ${intensityJoinClause}
-            left join last_readings lr_v 
+            left join last_voltage lr_v 
                 on lr_v."sensorId" = s.id 
-                and lr_v.code = 'voltaje'
                 ${voltageJoinClause}
             left join aggregates a 
                 on a.circuit = s."name"
@@ -137,37 +213,43 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                 a.hours
             order by s."name";
         `;
-    
-    return circuits
+
+  return circuits;
 }
 
-export async function getCircuitsWithCalculationsGroupedByMonth(panel: Panel, bindings: CircuitBindingsDTO)
-{
-    const whereConditions         : Prisma.Sql[] = [];
-    const aggregateJoinConditions : Prisma.Sql[] = [];
+export async function getCircuitsWithCalculationsGroupedByMonth(
+  panel: Panel,
+  bindings: CircuitBindingsDTO
+) {
+  const whereConditions: Prisma.Sql[] = [];
+  const aggregateJoinConditions: Prisma.Sql[] = [];
 
-    if (bindings.startDate) {
-        const startDate = new Date(bindings.startDate)
-        aggregateJoinConditions.push(Prisma.sql`a."minCreatedAt" >= ${startDate}`);
-    }
-    if (bindings.endDate) {
-        const endDate = new Date(bindings.endDate)
-        aggregateJoinConditions.push(Prisma.sql`a."maxCreatedAt" <= ${endDate}`);
-    }
-    if (bindings.circuits) {
-        const circuits = bindings.circuits.split('|');
-        whereConditions.push(Prisma.sql`s."name" IN (${Prisma.join(circuits)})`);
-    }
+  if (bindings.startDate) {
+    const startDate = new Date(bindings.startDate);
+    aggregateJoinConditions.push(Prisma.sql`a."minCreatedAt" >= ${startDate}`);
+  }
+  if (bindings.endDate) {
+    const endDate = new Date(bindings.endDate);
+    aggregateJoinConditions.push(Prisma.sql`a."maxCreatedAt" <= ${endDate}`);
+  }
+  if (bindings.circuits) {
+    const circuits = bindings.circuits.split("|");
+    whereConditions.push(Prisma.sql`s."name" IN (${Prisma.join(circuits)})`);
+  }
 
-    const whereClause = whereConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(whereConditions, ` AND `)}`
-    : Prisma.empty;
+  const whereClause =
+    whereConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(whereConditions, ` AND `)}`
+      : Prisma.empty;
 
-    const agregateJoinClause = aggregateJoinConditions.length > 0
-    ? Prisma.sql`AND ${Prisma.join(aggregateJoinConditions, ` AND `)}`
-    : Prisma.empty;
+  const agregateJoinClause =
+    aggregateJoinConditions.length > 0
+      ? Prisma.sql`AND ${Prisma.join(aggregateJoinConditions, ` AND `)}`
+      : Prisma.empty;
 
-    const circuits = await prisma.$queryRaw<CircuitWithCalculationsGroupedByMonth[]>`
+  const circuits = await prisma.$queryRaw<
+    CircuitWithCalculationsGroupedByMonth[]
+  >`
             with intensities as (
                 select 
                     s."name" as circuit,
@@ -239,13 +321,12 @@ export async function getCircuitsWithCalculationsGroupedByMonth(panel: Panel, bi
                 s."name"
             order by s."name";
         `;
-    
-    return circuits
+
+  return circuits;
 }
 
-export async function getCircuitsByPanel(panel: Panel)
-{
-    const circuits = await prisma.$queryRaw<CircuitDTO[]>`
+export async function getCircuitsByPanel(panel: Panel) {
+  const circuits = await prisma.$queryRaw<CircuitDTO[]>`
         select
             s."name"
         from "Sensor" s
@@ -256,5 +337,5 @@ export async function getCircuitsByPanel(panel: Panel)
             s."name"
     `;
 
-    return circuits;
+  return circuits;
 }
