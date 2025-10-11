@@ -59,6 +59,8 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
             intensities as (
                 select 
                     s."name" as circuit,
+                    s.code as code,
+                    s."relatedCode" as "relatedCode",
                     r."createdAt",
                     r.value as intensity
                 from "Reading" r
@@ -70,6 +72,8 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
             voltages as (
                 select 
                     s."name" as circuit,
+                    s.code as code,
+                    s."relatedCode" as "relatedCode",
                     r."createdAt",
                     r.value as voltage
                 from "Reading" r
@@ -84,11 +88,13 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(panel: Pan
                     i.intensity * v.voltage as "power",
                     case 
                         when	 i."createdAt" <= v."createdAt" then v."createdAt"
-                        when i."createdAt" > v."createdAt" then i."createdAt"
+                        else i."createdAt"
                     end as "createdAt"
                 from intensities i
                 join voltages v 
                         on v.circuit = i.circuit
+                        and v.code = i."relatedCode"
+                        and i.code = v."relatedCode"
                         and abs(extract(epoch from (i."createdAt" - v."createdAt"))) < 0.5
             ),
             aggregates as (
@@ -165,6 +171,8 @@ export async function getCircuitsWithCalculationsGroupedByMonth(panel: Panel, bi
             with intensities as (
                 select 
                     s."name" as circuit,
+                    s.code as code,
+                    s."relatedCode" as "relatedCode",
                     r."createdAt",
                     r.value as intensity
                 from "Reading" r
@@ -176,6 +184,8 @@ export async function getCircuitsWithCalculationsGroupedByMonth(panel: Panel, bi
             voltages as (
                 select 
                     s."name" as circuit,
+                    s.code as code,
+                    s."relatedCode" as "relatedCode",
                     r."createdAt",
                     r.value as voltage
                 from "Reading" r
@@ -195,6 +205,8 @@ export async function getCircuitsWithCalculationsGroupedByMonth(panel: Panel, bi
                 from intensities i
                 join voltages v 
                         on v.circuit = i.circuit
+                        and v.code = i."relatedCode"
+                        and i.code = v."relatedCode"
                         and abs(extract(epoch from (i."createdAt" - v."createdAt"))) < 0.5
             ),
             aggregates as (

@@ -37,6 +37,7 @@ model Panel {
 model Sensor {
   id             Int      @id @default(autoincrement())
   code           String
+  relatedCode    String   @default("")
   name           String
   doublePolarity Boolean
   panelId        Int
