@@ -105,7 +105,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             ),
             intensities as (
                 select 
-                    s."name" as circuit,
+                    s."name",
                     s.code as code,
                     s."relatedCode" as "relatedCode",
                     r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
@@ -131,7 +131,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             ),
             voltages as (
                 select 
-                    s."name" as circuit,
+                    s."name",
                     s.code as code,
                     s."relatedCode" as "relatedCode",
                     r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
@@ -157,7 +157,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             ),
             powers as (
                 select 
-                    i.circuit,
+                    i."name",
                     i.intensity * v.voltage as "power",
                     i."createdAt"
                 from intensities i
@@ -166,7 +166,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                         and i.code = v."relatedCode"
                         and i."createdAt" between v."createdAt" - interval '0.5 seconds' and v."createdAt" + interval '0.5 seconds'
                 group by 
-                    i.circuit,
+                    i."name",
                     i.intensity,
                     v.voltage,
                     i."createdAt"
@@ -174,25 +174,25 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             ),
             energies as (
                 select
-                    circuit,
+                    "name",
                     "power" as current_power,
-                    lag("power") over (partition by circuit order by "createdAt") as prev_power,
-                    extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 as hours_diff,
+                    lag("power") over (partition by "name" order by "createdAt") as prev_power,
+                    extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 as hours_diff,
                         trunc(
-                            (lag("power") over (partition by circuit order by "createdAt") *
-                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 * 
+                            (lag("power") over (partition by "name" order by "createdAt") *
+                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
                             1/1000)::numeric, 4
                         ) as kwh,
                         trunc(
-                            (lag("power") over (partition by circuit order by "createdAt") *
-                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY circuit ORDER BY "createdAt"))) / 3600 * 
+                            (lag("power") over (partition by "name" order by "createdAt") *
+                            extract(epoch from ("createdAt" - lag("createdAt") OVER (PARTITION BY "name" ORDER BY "createdAt"))) / 3600 * 
                             1/1000 * 0.22)::numeric, 4
                         ) as cost,
                         "createdAt"
                 from powers
             )
                 select 
-                e.circuit,
+                e."name",
                 s."doublePolarity",
                 sum(coalesce(lr_i.value, 0))                     as "lastIntensity",
                 sum(coalesce(lr_v.value, 0))                     as "lastVoltage",
@@ -207,13 +207,14 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                 on lr_v."sensorId" = s.id 
                 ${voltageJoinClause}
             left join energies e
-                on e.circuit = s."name"
+                on e."name" = s."name"
             where 1=1
                 and e.kwh > 0
+                ${whereClause}
             group by 
                 s."name",
                 s."doublePolarity",
-                e.circuit;
+                e."name";
         `;
 
   return circuits;
