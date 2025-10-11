@@ -216,7 +216,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
                 s."doublePolarity",
                 e."name";
         `;
-
+  console.log(circuits);
   return circuits;
 }
 
