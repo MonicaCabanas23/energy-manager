@@ -4,7 +4,6 @@ import Filters from "@/components/ui/Filters";
 import Input from "@/components/ui/Input";
 import MultipleSelect from "@/components/ui/MultipleSelect";
 import Table from "@/components/ui/Table";
-import { useUser } from "@/contexts/UserContext";
 import { BarLoader } from "react-spinners";
 import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import {
@@ -20,8 +19,8 @@ import {
 } from "chart.js";
 import { CSSProperties, useEffect, useState } from "react";
 import { Line } from 'react-chartjs-2';
-import { Pie } from 'react-chartjs-2';
 import { CircuitDTO } from "@/dto/circuits/circuit.dto";
+import { CircuitWithCalculationsGroupedByMonth } from "@/dto/circuits/circuit-with-calculations-grouped-by-month.dto";
 
 ChartJS.register(
     CategoryScale,
@@ -34,70 +33,30 @@ ChartJS.register(
     ArcElement
 );
 
-const options = {
+const energyOptions = {
     responsive: true,
     plugins: {
         legend: {
         position: 'top' as const,
         },
         title: {
-        display: true,
-        text: 'Consumo de energía por mes',
+            display: true,
+            text: 'Consumo de energía (kWh) por mes',
         },
     },
 };
 
-const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
-
-const dataLine = {
-    labels: labels,
-    datasets: [
-        {
-            label: 'Circuito 1',
-            data: [1, 1, 1, 1, 1, 6, 24],
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+const costOptions = {
+    responsive: true,
+    plugins: {
+        legend: {
+        position: 'top' as const,
         },
-        {
-            label: 'Circuito 2',
-            data: [1, 2, 3, 4, 100, 30, 35],
-            borderColor: 'rgb(53, 162, 235)',
-            backgroundColor: 'rgba(53, 162, 235, 0.5)',
+        title: {
+            display: true,
+            text: 'Costo (USD) por mes',
         },
-        {
-            label: 'Circuito 3',
-            data: [2, 75, 10, 32, 50, 30, 10],
-            borderColor: 'rgb(100, 60, 200)',
-            backgroundColor: 'rgba(100, 60, 200, 0.5)',
-        },
-    ],
-};
-
-const dataPie = {
-    labels: ['Circuito 1', 'Circuito 2', 'Circuito 3'],
-    datasets: [
-        {
-        label: 'Consumo total',
-        data: [12, 19, 3],
-        backgroundColor: [
-            'rgba(255, 99, 132, 0.2)',
-            'rgba(54, 162, 235, 0.2)',
-            'rgba(255, 206, 86, 0.2)',
-            'rgba(75, 192, 192, 0.2)',
-            'rgba(153, 102, 255, 0.2)',
-            'rgba(255, 159, 64, 0.2)',
-        ],
-        borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-            'rgba(75, 192, 192, 1)',
-            'rgba(153, 102, 255, 1)',
-            'rgba(255, 159, 64, 1)',
-        ],
-        borderWidth: 1,
-        },
-    ],
+    },
 };
 
 interface Option {
@@ -105,9 +64,17 @@ interface Option {
     label: string;
 }
 
+interface LineGraphDataSet {
+    label: string;
+    data: number[];
+}
+
 export default function Dashboard() {
-    const [circuits, setCircuits]                 = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
     const [selectOptions, setSelectOptions]       = useState<Option[]>([])
+    const [tableCircuits, setTableCircuits]       = useState<CircuitWithReadingsAndCalculationsDTO[]>([])
+    const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([])
+    const [costDataSet, setCostDataSet]           = useState<LineGraphDataSet[]>([])
+    const [monthLabels, setMonthLabels]           = useState<string[]>([])
     const [selectedCircuits, setSelectedCircuits] = useState<Option[]>([])
     const [isLoading, setIsLoading]               = useState<boolean>(true)
     const [startDate, setStartDate]               = useState<string>('')
@@ -117,6 +84,31 @@ export default function Dashboard() {
         display : "block",
         margin  : "auto auto",
     };
+
+    // const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
+
+    const energyDataLine = {
+        labels: monthLabels,
+        datasets: energyDataSet,
+    };
+
+    const costDataLine = {
+        labels: monthLabels,
+        datasets: energyDataSet,
+    }
+
+    function getMonthNameInSpanish(monthNumber: number) {
+        // Create a Date object. The year and day don't matter as we only need the month.
+        // monthNumber is 0-indexed, so 0 is January, 1 is February, etc.
+        const date = new Date(2000, monthNumber, 1); 
+
+        // Create an Intl.DateTimeFormat instance for Spanish (es-ES)
+        // and specify that we want the 'long' (full) month name.
+        const formatter = new Intl.DateTimeFormat('es-ES', { month: 'long' });
+
+        // Format the date to get the Spanish month name.
+        return formatter.format(date);
+    }
 
     const fetchCircuits = async () => {
         try {
@@ -144,6 +136,58 @@ export default function Dashboard() {
         }
     }
 
+    const fetchCircuitsWithCalculationsGroupedByMonth = async () => {
+        try {
+            const params = new URLSearchParams({
+                espChipId : 'demo', // TODO Cambiar por un espChipId asociado a la cuenta del usuario
+            })
+
+            startDate                   && params.set('startDate', startDate)
+            endDate                     && params.set('endDate', endDate)
+            selectedCircuits.length > 0 && params.set('circuits', selectedCircuits.map(c => c.value).join('|'))
+
+            const res = await fetch(`/api/circuits-calculations?${params.toString()}`);
+            
+            if (!res.ok) {
+                throw new Error(`Error ${res.status}`);
+            }
+
+            let data = await res.json();
+            data           = data.filter((c: CircuitWithCalculationsGroupedByMonth) => !['L1', 'L2', 'N'].includes(c.name) )
+            const months   = data.find((c: CircuitWithCalculationsGroupedByMonth) => c.months.length > 0).months.map((m: number) => getMonthNameInSpanish(m-1))
+            const energyDataSet = data.map((c: CircuitWithCalculationsGroupedByMonth, index: number) => {
+                const hue = (index * 360 / data.length) % 360; // distribuye tonos uniformemente
+                const borderColor = `hsl(${hue}, 70%, 50%)`;
+                const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`;
+
+                return {
+                    label: c.name,
+                    data: c.energies,
+                    borderColor,
+                    backgroundColor,
+                };
+            })
+            const costDataSet = data.map((c: CircuitWithCalculationsGroupedByMonth, index: number) => {
+                const hue = (index * 360 / data.length) % 360; // distribuye tonos uniformemente
+                const borderColor = `hsl(${hue}, 70%, 50%)`;
+                const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`;
+
+                return {
+                    label: c.name,
+                    data: c.costs,
+                    borderColor,
+                    backgroundColor,
+                };
+            })
+
+            setMonthLabels(months)
+            setEnergyDataSet(energyDataSet)
+            setCostDataSet(costDataSet)
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     const fetchCircuitsWithReadingsAndCalculations = async () => {
         try {
             const params = new URLSearchParams({
@@ -163,7 +207,7 @@ export default function Dashboard() {
             let data = await res.json();
             data = data.filter((c: CircuitWithReadingsAndCalculationsDTO) => !['L1', 'L2', 'N'].includes(c.name) )
 
-            setCircuits(data)
+            setTableCircuits(data)
         } catch (error) {
             console.error(error);
         }
@@ -171,8 +215,9 @@ export default function Dashboard() {
 
     useEffect(() => {
         const load = async () => {
-            await fetchCircuitsWithReadingsAndCalculations()
             await fetchCircuits()
+            await fetchCircuitsWithReadingsAndCalculations()
+            await fetchCircuitsWithCalculationsGroupedByMonth()
             setIsLoading(false)
         }
 
@@ -180,6 +225,7 @@ export default function Dashboard() {
 
         // Set up interval to fetch data every second (1000 milliseconds)
         const intervalId = setInterval(() => {
+            fetchCircuitsWithCalculationsGroupedByMonth();
             fetchCircuitsWithReadingsAndCalculations();
         }, 1000);
 
@@ -221,23 +267,23 @@ export default function Dashboard() {
                 </Filters>
                 
                 <div className="max-w-full grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-4">
-                    {/* <div className="bg-white col-span-1 md:col-span-8 rounded-md shadow-md p-6">
-                        <Line options={options} data={dataLine} />
+                    <div className="bg-white col-span-1 md:col-span-6 rounded-md shadow-md p-6">
+                        <Line options={energyOptions} data={energyDataLine} />
                     </div>
-                    <div className="bg-white col-span-1 md:col-span-4 rounded-md shadow-md p-6">
-                        <Pie data={dataPie} />
-                    </div> */}
+                    <div className="bg-white col-span-1 md:col-span-6 rounded-md shadow-md p-6">
+                        <Line options={costOptions} data={costDataLine} />
+                    </div>
                     <div className="col-span-1 md:col-span-12 shadow-md rounded-bl-md rounded-br-md">
                         <Table 
                             definition={{
                                 name           : "Circuito",
                                 doublePolarity : "Doble polaridad",
-                                lastIntensity  : "Voltaje (V)",
-                                lastVoltage    : "Corriente (A)",
+                                lastIntensity  : "Corriente (A)",
+                                lastVoltage    : "Voltaje (V)",
                                 energy         : "Consumo (kWh)",
                                 cost           : "Costo (USD)"
                             }}
-                            data={circuits}
+                            data={tableCircuits}
                         />
                     </div>
                 </div>
