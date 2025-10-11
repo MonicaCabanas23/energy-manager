@@ -1,7 +1,7 @@
-FROM node:22-alpine AS base
+FROM node:20-alpine AS base
 
-# Instalar dependencias necesarias
-RUN apk add --no-cache libc6-compat curl
+# Instalar dependencias necesarias (Prisma requiere openssl en Alpine)
+RUN apk add --no-cache libc6-compat openssl curl
 
 # Establecer directorio de trabajo
 WORKDIR /app
@@ -34,6 +34,7 @@ ARG MQTT_URI
 ARG MQTT_USERNAME
 ARG MQTT_PASSWORD
 ARG MQTT_TOPICS
+ARG NEXT_PUBLIC_SOCKET_URL
 
 # Establecer variables de entorno para el proceso de compilación
 ENV APP_BASE_URL=${APP_BASE_URL}
@@ -49,6 +50,7 @@ ENV MQTT_URI=${MQTT_URI}
 ENV MQTT_USERNAME=${MQTT_USERNAME}
 ENV MQTT_PASSWORD=${MQTT_PASSWORD}
 ENV MQTT_TOPICS=${MQTT_TOPICS}
+ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
 
 # Copiar archivos de dependencias y configuración primero
 COPY --from=deps /app/node_modules ./node_modules
@@ -79,8 +81,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
-# Exponer puerto
+# Exponer puertos de Next.js y Socket.IO
 EXPOSE 3000
+EXPOSE 3001
 
 # Comando para iniciar la aplicación
 CMD ["npm", "start"]
