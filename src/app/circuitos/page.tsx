@@ -1,6 +1,6 @@
 "use client";
 import ElectricalPanel from "@/components/electrical-panel/electrical-panel";
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import { BarLoader } from "react-spinners";
 
@@ -9,6 +9,8 @@ export default function Circuitos() {
     CircuitWithReadingsAndCalculationsDTO[]
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const isRequestInProgressRef = useRef(false);
 
   const override: CSSProperties = {
     display: "block",
@@ -42,9 +44,24 @@ export default function Circuitos() {
     load();
 
     // Set up interval to fetch data every 5 seconds (5000 milliseconds)
-    const intervalId = setInterval(() => {
-      fetchCircuits();
-    }, 1000);
+    // Set up interval to fetch data secuencialmente
+    const intervalId = setInterval(async () => {
+      // Referencia para controlar si hay una solicitud en progreso
+      if (isRequestInProgressRef.current) {
+        return;
+      }
+
+      isRequestInProgressRef.current = true;
+      try {
+        // Ejecutar secuencialmente, esperando que cada una termine
+        // await fetchCircuitsWithCalculationsGroupedByMonth();
+        await fetchCircuits();
+      } catch (error) {
+        console.error("Error en la actualización periódica:", error);
+      } finally {
+        isRequestInProgressRef.current = false;
+      }
+    }, 3000);
 
     // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);

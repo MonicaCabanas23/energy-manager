@@ -258,14 +258,14 @@ export default function Dashboard() {
       isRequestInProgressRef.current = true;
       try {
         // Ejecutar secuencialmente, esperando que cada una termine
-        await fetchCircuitsWithCalculationsGroupedByMonth();
+        // await fetchCircuitsWithCalculationsGroupedByMonth();
         await fetchCircuitsWithReadingsAndCalculations();
       } catch (error) {
         console.error("Error en la actualización periódica:", error);
       } finally {
         isRequestInProgressRef.current = false;
       }
-    }, 1000);
+    }, 3000);
 
     // Clean up the interval when the component unmounts
     return () => clearInterval(intervalId);

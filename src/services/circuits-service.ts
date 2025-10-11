@@ -189,12 +189,12 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             from powers
         )
             select 
-            e."name",
+            s."name",
             s."doublePolarity",
             sum(coalesce(lr_i.value, 0)) as "lastIntensity",
             sum(coalesce(lr_v.value, 0)) as "lastVoltage",
-            sum(e.kwh)                   as energy,
-            sum(e.cost)                  as cost
+            coalesce(sum(e.kwh), 0)      as energy,
+            coalesce(sum(e.cost), 0)     as cost
         from "Sensor" s
         join "Panel" p on p.id = s."panelId"
         left join last_intensity lr_i 
@@ -205,8 +205,8 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
             ${voltageJoinClause}
         left join energies e
             on e."name" = s."name"
-        where 1=1
             and e.kwh > 0
+        where 1=1
             ${whereClause}
         group by 
             s."name",
