@@ -275,15 +275,18 @@ export default function Dashboard() {
     <div className="flex flex-col gap-4 p-2">
       {!isLoading ? (
         <>
-          <Filters classes="grid grid-cols-3 gap-4">
-            {selectOptions.length > 0 ? (
+          <Filters 
+            classes="grid grid-cols-2 gap-4"
+            onClear={() => {setStartDate(''); setEndDate(''); setSelectedCircuits([])}}
+          >
+            {/* {selectOptions.length > 0 ? (
               <MultipleSelect
                 label="Circuito"
                 options={selectOptions}
                 selected={selectedCircuits}
                 onChange={(v) => setSelectedCircuits(v)}
               />
-            ) : null}
+            ) : null} */}
             <Input
               id="startDate"
               type="date"

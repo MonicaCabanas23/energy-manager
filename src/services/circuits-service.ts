@@ -3,6 +3,7 @@ import { CircuitWithCalculationsGroupedByMonth } from "@/dto/circuits/circuit-wi
 import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import { CircuitDTO } from "@/dto/circuits/circuit.dto";
 import { prisma } from "@/lib/prisma";
+import { toUTC } from "@/lib/utc";
 import { Panel, Prisma } from "@prisma/client";
 
 export async function getCiruitsWithLastReadingAndCalculationsByPanel(
@@ -14,9 +15,9 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
 
   // Fechas reutilizables para filtros dentro de CTEs
   const startDateGlobal = bindings.startDate
-    ? new Date(bindings.startDate)
+    ? toUTC(bindings.startDate)
     : null;
-  const endDateGlobal = bindings.endDate ? new Date(bindings.endDate) : null;
+  const endDateGlobal = bindings.endDate ? toUTC(bindings.endDate) : null;
 
   // Obtener IDs de tipos de lectura una sola vez (optimización)
   const readingTypes = await prisma.readingType.findMany({
@@ -56,7 +57,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
     SELECT DISTINCT ON (r."sensorId")
       r."sensorId",
       TRUNC(r.value::numeric, 4) as value,
-      r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
+      r."createdAt" 
     FROM "Reading" r
     JOIN "Sensor" s ON s.id = r."sensorId"
     JOIN "Panel" p ON p.id = s."panelId"
@@ -79,7 +80,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
     SELECT DISTINCT ON (r."sensorId")
       r."sensorId",
       TRUNC(r.value::numeric, 4) as value,
-      r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt"
+      r."createdAt" 
     FROM "Reading" r
     JOIN "Sensor" s ON s.id = r."sensorId"
     JOIN "Panel" p ON p.id = s."panelId"
@@ -103,7 +104,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
       s."name",
       s.code as code,
       s."relatedCode" as "relatedCode",
-      r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
+      r."createdAt" ,
       r.value as intensity
     FROM "Reading" r
     JOIN "Sensor" s ON s.id = r."sensorId"
@@ -128,7 +129,7 @@ export async function getCiruitsWithLastReadingAndCalculationsByPanel(
       s."name",
       s.code as code,
       s."relatedCode" as "relatedCode",
-      r."createdAt" AT TIME ZONE 'UTC' AT TIME ZONE 'America/El_Salvador' as "createdAt",
+      r."createdAt" ,
       r.value as voltage
     FROM "Reading" r
     JOIN "Sensor" s ON s.id = r."sensorId"
