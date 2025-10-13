@@ -1,8 +1,9 @@
 import mqtt from "mqtt";
 import { getSensorByCodeAndPanel } from "./sensor-service";
 import { getPanelByEspChipId } from "./panel-service";
-import { createReading } from "./reading-service";
 import { getReadingTypeByCode } from "./reading-type-service";
+import { createPower } from "./power-service";
+import { getCircuitBySensor } from "./circuits-service";
 
 export default function subscribe() {
   const mqttUri = process.env.MQTT_URI ?? ""; // Or wss:// for secure websockets
@@ -36,24 +37,29 @@ export default function subscribe() {
   });
 
   client.on("message", async (topic, message) => {
-    const length = topic.split("/").length;
-    const sensorCode = topic.split("/")[length - 1];
+    const length          = topic.split("/").length;
+    const sensorCode      = topic.split("/")[length - 1];
     const readingTypeCode = topic.split("/")[length - 2]; // Especifica el tipo de lectura que se manda
-    const readingType = await getReadingTypeByCode(readingTypeCode);
-    const panel = await getPanelByEspChipId(espChipId);
-    let sensor = null;
+    const panel           = await getPanelByEspChipId(espChipId);
+    let sensor            = null;
 
-    if (panel && readingType) {
+    if (panel && readingTypeCode === 'corriente') {
       sensor = await getSensorByCodeAndPanel(sensorCode, panel);
-
+      
       if (sensor) {
-        await createReading({
-          sensorId: sensor.id,
-          readingTypeId: readingType.id,
+        const circuit = await getCircuitBySensor(sensor)
+        
+        await createPower({
+          circuitId: circuit.id,
           value: Number(message.toString()) ?? 0,
         });
-      } else {
       }
+    }
+    else if(panel && readingTypeCode === 'voltaje') {
+
+    }
+    else if(panel && readingTypeCode === 'potencia') {
+
     }
 
     console.log(`Received message on topic ${topic}: ${message.toString()}`);

@@ -37,37 +37,65 @@ model Panel {
 model Sensor {
   id             Int      @id @default(autoincrement())
   code           String
-  relatedCode    String   @default("")
   name           String
-  doublePolarity Boolean
   panelId        Int
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relations 
-  panel    Panel     @relation(fields: [panelId], references: [id])
-  readings Reading[]
+  panel          Panel            @relation(fields: [panelId], references: [id])
+  sensorXCircuit SensorXCircuit[]
 }
 
-model ReadingType {
+model SensorXCircuit {
+  id        Int @id @default(autoincrement())
+  sensorId  Int
+  circuitId Int
+
+  sensor  Sensor  @relation(fields: [sensorId], references: [id])
+  circuit Circuit @relation(fields: [circuitId], references: [id])
+}
+
+model Circuit {
+  id         Int      @id @default(autoincrement())
+  name       String
+  doublePolarity Boolean
+  sensorId   Int
+  createdAt  DateTime
+  updatedtAt DateTime
+
+  sensorXCircuit SensorXCircuit[]
+  power          Power[]
+  intensity      Intensity[]
+  voltage        Voltage[]
+}
+
+model Power {
   id        Int      @id @default(autoincrement())
-  code      String
-  label     String
+  circuitId Int
+  value     Float
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime
 
-  readings Reading[]
+  circuit Circuit @relation(fields: [circuitId], references: [id])
 }
 
-model Reading {
-  id            Int      @id @default(autoincrement())
-  sensorId      Int
-  readingTypeId Int
-  value         Float
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+model Intensity {
+  id        Int      @id @default(autoincrement())
+  circuitId Int
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
-  // Relations 
-  sensor      Sensor      @relation(fields: [sensorId], references: [id])
-  readingType ReadingType @relation(fields: [readingTypeId], references: [id])
+  circuit Circuit @relation(fields: [circuitId], references: [id])
+}
+
+model Voltage {
+  id        Int      @id @default(autoincrement())
+  circuitId Int
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  circuit Circuit @relation(fields: [circuitId], references: [id])
 }
