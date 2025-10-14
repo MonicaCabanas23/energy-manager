@@ -1,15 +1,10 @@
 "use client"
-
-import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
-import { useEffect, useState } from "react"
-import { MdDelete } from "react-icons/md";
-import { MdEdit } from "react-icons/md";
-import { MdInfo } from "react-icons/md";  
-import { number } from "zod";
+import { Reading } from "@/types/circuits";
+import { useState } from "react"
 
 interface ElectricalPanelProps {
-  circuits              : CircuitWithReadingsAndCalculationsDTO[];
-  classes             ?: string;
+  circuits : Reading[];
+  classes ?: string;
 }
 
 export default function ElectricalPanel({ 
@@ -25,13 +20,13 @@ export default function ElectricalPanel({
     return circuits
     .filter(c => regex.test(c.name))
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map((c: CircuitWithReadingsAndCalculationsDTO, index: number)=> (
+    .map((c: Reading, index: number)=> (
       <div 
         key={index}
         className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center font-semibold"
       >
         <p>{c.name}</p>
-        { c.lastIntensity } A
+        { c.intensity } A
       </div>
     ))
   }
@@ -42,7 +37,7 @@ export default function ElectricalPanel({
     return circuits
     .filter(c => regex.test(c.name))
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map((circuit: CircuitWithReadingsAndCalculationsDTO, index: number) => (
+    .map((circuit: Reading, index: number) => (
       <div
         key={index}
         className={`
@@ -64,12 +59,12 @@ export default function ElectricalPanel({
             <p 
               className="text-xs"
             >
-              { circuit.lastIntensity ?? 0 }A
+              { circuit.intensity ?? 0 }A
             </p>
             <p 
               className="text-xs"
             >
-              { circuit.lastVoltage ?? 0 }V
+              { circuit.voltage ?? 0 }V
             </p>
           </div>
       </div>

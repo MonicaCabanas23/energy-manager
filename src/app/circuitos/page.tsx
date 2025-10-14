@@ -1,76 +1,78 @@
 "use client";
-import ElectricalPanel from "@/components/electrical-panel/electrical-panel";
-import { CSSProperties, useEffect, useRef, useState } from "react";
-import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
-import { BarLoader } from "react-spinners";
+import ElectricalPanel                        from "@/components/electrical-panel/electrical-panel";
+import { CSSProperties, useEffect, useState } from "react";
+import { BarLoader }                          from "react-spinners";
+import { Reading }                            from "@/types/circuits";
+import { MqttMessagePayload }                 from "@/types/mqtt";
+import { defaultReadings }                    from "@/data/default-readings";
 
 export default function Circuitos() {
-  const [circuits, setCircuits] = useState<
-    CircuitWithReadingsAndCalculationsDTO[]
-  >([]);
+  const [readings, setReadings]   = useState<Reading[]>(defaultReadings);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const isRequestInProgressRef = useRef(false);
 
   const override: CSSProperties = {
     display: "block",
     margin: "auto auto",
   };
 
-  const fetchCircuits = async () => {
-    try {
-      const res = await fetch(
-        `/api/circuits-readings-calculations?${new URLSearchParams({
-          espChipId: "demo", // TODO: Cambiar por un espChipId asociado a la cuenta del usuario
-        }).toString()}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`);
-      }
-      const data = await res.json();
-      setCircuits(data);
-    } catch (error) {
-      console.error(error);
+  function processWSMessage(data: MqttMessagePayload) {
+      const circuitName     = data.circuitName;
+      const doublePolarity  = data.doublePolarity;
+      const topic           = data.topic;
+      const parts           = topic.split("/")
+      const readingTypeCode = parts[parts.length - 2]
+  
+      setReadings((prev) => {
+        // Verificar si ya existe la lectura
+        const exists = prev.find(r => r.name.trim() === circuitName.trim());
+        
+        if (exists) {
+          // Actualizar lectura existente
+          return prev.map(r => {
+            if (r.name.trim() === circuitName.trim()) {
+              return {
+                ...r,
+                intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : r.intensity,
+                voltage: readingTypeCode === 'voltaje' ? Number(data.message) ?? 0 : r.voltage
+              }
+            }
+            return r;
+          });
+        } else {
+          // Agregar nueva lectura
+          const newReading: Reading = {
+            name: circuitName,
+            doublePolarity: doublePolarity,
+            intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : 0,
+            voltage: readingTypeCode === 'voltaje' ? Number(data.message) ?? 0 : 0
+          };
+          return [newReading, ...prev];
+        }
+      });
     }
-  };
 
   useEffect(() => {
     const load = async () => {
-      await fetchCircuits();
       setIsLoading(false);
     };
 
     load();
 
-    // Set up interval to fetch data every 5 seconds (5000 milliseconds)
-    // Set up interval to fetch data secuencialmente
-    const intervalId = setInterval(async () => {
-      // Referencia para controlar si hay una solicitud en progreso
-      if (isRequestInProgressRef.current) {
-        return;
-      }
+    const url = process.env.NEXT_PUBLIC_WS_URL
+    const evtSource = new EventSource(url!);
 
-      isRequestInProgressRef.current = true;
-      try {
-        // Ejecutar secuencialmente, esperando que cada una termine
-        // await fetchCircuitsWithCalculationsGroupedByMonth();
-        await fetchCircuits();
-      } catch (error) {
-        console.error("Error en la actualización periódica:", error);
-      } finally {
-        isRequestInProgressRef.current = false;
-      }
-    }, 1000);
+    evtSource.onmessage = (event) => {
+      const data: MqttMessagePayload = JSON.parse(event.data);
+      processWSMessage(data)
+    };
 
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(intervalId);
+    return () => evtSource.close();
   }, []);
 
   return (
     <div className="flex flex-col p-2">
       {!isLoading ? (
-        <ElectricalPanel circuits={circuits} />
+        <ElectricalPanel circuits={readings} />
       ) : (
         <BarLoader
           color="#008080"

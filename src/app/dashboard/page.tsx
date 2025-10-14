@@ -1,9 +1,9 @@
 "use client";
 
-import Filters from "@/components/ui/Filters";
-import Input from "@/components/ui/Input";
-import Table from "@/components/ui/Table";
-import { BarLoader } from "react-spinners";
+import Filters                                from "@/components/ui/Filters";
+import Input                                  from "@/components/ui/Input";
+import Table                                  from "@/components/ui/Table";
+import { BarLoader }                          from "react-spinners";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,11 +14,11 @@ import {
   PointElement,
   LineElement,
   ArcElement,
-} from "chart.js";
+}                                             from "chart.js";
 import { CSSProperties, useEffect, useState } from "react";
-import { Line } from "react-chartjs-2";
-import { MqttMessagePayload } from "@/types/mqtt";
-import { Reading } from "@/types/circuits";
+import { Line }                               from "react-chartjs-2";
+import { MqttMessagePayload }                 from "@/types/mqtt";
+import { Reading }                            from "@/types/circuits";
 
 ChartJS.register(
   CategoryScale,
@@ -68,7 +68,7 @@ interface LineGraphDataSet {
 }
 
 export default function Dashboard() {
-  const [readings, setReadings]    = useState<Reading[]>([]);
+  const [readings, setReadings]                 = useState<Reading[]>([]);
   const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([]);
   const [monthLabels, setMonthLabels]           = useState<string[]>([]);
   const [isLoading, setIsLoading]               = useState<boolean>(true);
