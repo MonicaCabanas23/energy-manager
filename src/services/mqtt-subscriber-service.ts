@@ -1,13 +1,13 @@
-import mqtt from "mqtt";
-import { getSensorByCodeAndPanel } from "./sensor-service";
-import { getPanelByEspChipId } from "./panel-service";
-import { getReadingTypeByCode } from "./reading-type-service";
-import { createPower } from "./power-service";
-import { getCircuitBySensor } from "./circuits-service";
+import mqtt, { MqttClient }                     from "mqtt";
+import { createPower }                          from "./power-service";
+import { getCircuitByName, getCircuitBySensor } from "./circuits-service";
+import { MqttMessagePayload }                   from "@/types/mqtt";
+import { getSensorByCode }                      from "./sensor-service";
 
-export default function subscribe() {
+export default function subscribe(
+  onMessageCallback?: (data: MqttMessagePayload) => void
+): MqttClient {
   const mqttUri = process.env.MQTT_URI ?? ""; // Or wss:// for secure websockets
-  const espChipId = "demo"; // TODO: Cambiar por el espChipId obtenido de la sesión del usuario
 
   const options = {
     clientId: "nextjs-subscriber-" + Math.random().toString(16).substr(2, 8),
@@ -38,29 +38,45 @@ export default function subscribe() {
 
   client.on("message", async (topic, message) => {
     const length          = topic.split("/").length;
-    const sensorCode      = topic.split("/")[length - 1];
+    const identifier      = topic.split("/")[length - 1];
     const readingTypeCode = topic.split("/")[length - 2]; // Especifica el tipo de lectura que se manda
-    const panel           = await getPanelByEspChipId(espChipId);
-    let sensor            = null;
+    let circuitName       = null
 
-    if (panel && readingTypeCode === 'corriente') {
-      sensor = await getSensorByCodeAndPanel(sensorCode, panel);
+    const regex = /^c/i;
+    if(regex.test(identifier)) {
+      const codes = identifier.match(/c\d+/g)
+      circuitName = codes?.join(',').toUpperCase() ?? ''
+    }
+    
+    if (readingTypeCode === 'potencia' && circuitName != null) { // Guardar en base de datos para almacenar históricos
+      const circuit = await getCircuitByName(circuitName)
       
-      if (sensor) {
-        const circuit = await getCircuitBySensor(sensor)
-        
+      if(circuit) {
         await createPower({
-          circuitId: circuit.id,
-          value: Number(message.toString()) ?? 0,
+          circuitId : circuit.id,
+          value     : Number(message.toString()) ?? 0,
         });
       }
     }
-    else if(panel && readingTypeCode === 'voltaje') {
 
-    }
-    else if(panel && readingTypeCode === 'potencia') {
+    if(readingTypeCode === 'corriente' || readingTypeCode === 'voltaje') {
+      const sensor = await getSensorByCode(identifier)
 
+      if(sensor) {
+        const circuit = await getCircuitBySensor(sensor)
+
+        const payload: MqttMessagePayload= {
+          topic,
+          circuitName    : circuit?.name ?? '',
+          doublePolarity : circuit?.doublePolarity ?? false,
+          message        : message.toString(),
+          timestamp      : new Date().toISOString(),
+        };
+    
+        onMessageCallback?.(payload)
+      }
     }
+
 
     console.log(`Received message on topic ${topic}: ${message.toString()}`);
   });
@@ -68,4 +84,6 @@ export default function subscribe() {
   client.on("error", (err) => {
     console.error("MQTT error:", err);
   });
+
+  return client;
 }

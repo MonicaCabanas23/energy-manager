@@ -2,10 +2,8 @@
 
 import Filters from "@/components/ui/Filters";
 import Input from "@/components/ui/Input";
-import MultipleSelect from "@/components/ui/MultipleSelect";
 import Table from "@/components/ui/Table";
 import { BarLoader } from "react-spinners";
-import { CircuitWithReadingsAndCalculationsDTO } from "@/dto/circuits/circuit-with-readings-and-calcultations.dto";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,10 +15,10 @@ import {
   LineElement,
   ArcElement,
 } from "chart.js";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { Line } from "react-chartjs-2";
-import { CircuitDTO } from "@/dto/circuits/circuit.dto";
-import { CircuitWithCalculationsGroupedByMonth } from "@/dto/circuits/circuit-with-calculations-grouped-by-month.dto";
+import { MqttMessagePayload } from "@/types/mqtt";
+import { Reading } from "@/types/circuits";
 
 ChartJS.register(
   CategoryScale,
@@ -70,26 +68,17 @@ interface LineGraphDataSet {
 }
 
 export default function Dashboard() {
-  const [selectOptions, setSelectOptions] = useState<Option[]>([]);
-  const [tableCircuits, setTableCircuits] = useState<
-    CircuitWithReadingsAndCalculationsDTO[]
-  >([]);
-  const [energyDataSet, setEnergyDataSet] = useState<LineGraphDataSet[]>([]);
-  const [costDataSet, setCostDataSet] = useState<LineGraphDataSet[]>([]);
-  const [monthLabels, setMonthLabels] = useState<string[]>([]);
-  const [selectedCircuits, setSelectedCircuits] = useState<Option[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
-
-  const isRequestInProgressRef = useRef(false);
+  const [readings, setReadings]    = useState<Reading[]>([]);
+  const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([]);
+  const [monthLabels, setMonthLabels]           = useState<string[]>([]);
+  const [isLoading, setIsLoading]               = useState<boolean>(true);
+  const [startDate, setStartDate]               = useState<string>("");
+  const [endDate, setEndDate]                   = useState<string>("");
 
   const override: CSSProperties = {
     display: "block",
     margin: "auto auto",
   };
-
-  // const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
   const energyDataLine = {
     labels: monthLabels,
@@ -101,175 +90,63 @@ export default function Dashboard() {
     datasets: energyDataSet,
   };
 
-  function getMonthNameInSpanish(monthNumber: number) {
-    // Create a Date object. The year and day don't matter as we only need the month.
-    // monthNumber is 0-indexed, so 0 is January, 1 is February, etc.
-    const date = new Date(2000, monthNumber, 1);
+  function processWSMessage(data: MqttMessagePayload) {
+    const circuitName     = data.circuitName;
+    const doublePolarity  = data.doublePolarity;
+    const topic           = data.topic;
+    const parts           = topic.split("/")
+    const readingTypeCode = parts[parts.length - 2]
+    const excludedCircuits = ['L1', 'L2', 'N']
 
-    // Create an Intl.DateTimeFormat instance for Spanish (es-ES)
-    // and specify that we want the 'long' (full) month name.
-    const formatter = new Intl.DateTimeFormat("es-ES", { month: "long" });
-
-    // Format the date to get the Spanish month name.
-    return formatter.format(date);
+    setReadings((prev) => {
+      // Verificar si ya existe la lectura
+      const exists = prev.find(r => r.name.trim() === circuitName.trim());
+      
+      if (exists) {
+        // Actualizar lectura existente
+        return prev.map(r => {
+          if (r.name.trim() === circuitName.trim()) {
+            return {
+              ...r,
+              intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : r.intensity,
+              voltage: readingTypeCode === 'voltaje' ? Number(data.message) ?? 0 : r.voltage
+            }
+          }
+          return r;
+        });
+      } else if(!exists && excludedCircuits.includes(circuitName)) {
+        return prev;
+      } else {
+        // Agregar nueva lectura
+        const newReading: Reading = {
+          name: circuitName,
+          doublePolarity: doublePolarity,
+          intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : 0,
+          voltage: readingTypeCode === 'voltaje' ? Number(data.message) ?? 0 : 0
+        };
+        return [newReading, ...prev];
+      }
+    });
   }
-
-  const fetchCircuits = async () => {
-    try {
-      const params = new URLSearchParams({
-        espChipId: "demo", // TODO Cambiar por un espChipId asociado a la cuenta del usuario
-      });
-
-      const res = await fetch(`/api/circuits?${params.toString()}`);
-
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`);
-      }
-
-      let data = await res.json();
-      data = data.filter(
-        (c: CircuitWithReadingsAndCalculationsDTO) =>
-          !["L1", "L2", "N"].includes(c.name)
-      );
-
-      const options = data.map((c: CircuitDTO) => ({
-        value: c.name,
-        label: c.name,
-      }));
-
-      setSelectOptions(options);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchCircuitsWithCalculationsGroupedByMonth = async () => {
-    try {
-      const params = new URLSearchParams({
-        espChipId: "demo", // TODO Cambiar por un espChipId asociado a la cuenta del usuario
-      });
-
-      startDate && params.set("startDate", startDate);
-      endDate && params.set("endDate", endDate);
-      selectedCircuits.length > 0 &&
-        params.set("circuits", selectedCircuits.map((c) => c.value).join("|"));
-
-      const res = await fetch(
-        `/api/circuits-calculations?${params.toString()}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`);
-      }
-
-      let data = await res.json();
-      data = data.filter(
-        (c: CircuitWithCalculationsGroupedByMonth) =>
-          !["L1", "L2", "N"].includes(c.name)
-      );
-      const months = data
-        .find((c: CircuitWithCalculationsGroupedByMonth) => c.months.length > 0)
-        .months.map((m: number) => getMonthNameInSpanish(m - 1));
-      const energyDataSet = data.map(
-        (c: CircuitWithCalculationsGroupedByMonth, index: number) => {
-          const hue = ((index * 360) / data.length) % 360; // distribuye tonos uniformemente
-          const borderColor = `hsl(${hue}, 70%, 50%)`;
-          const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`;
-
-          return {
-            label: c.name,
-            data: c.energies,
-            borderColor,
-            backgroundColor,
-          };
-        }
-      );
-      const costDataSet = data.map(
-        (c: CircuitWithCalculationsGroupedByMonth, index: number) => {
-          const hue = ((index * 360) / data.length) % 360; // distribuye tonos uniformemente
-          const borderColor = `hsl(${hue}, 70%, 50%)`;
-          const backgroundColor = `hsla(${hue}, 70%, 50%, 0.5)`;
-
-          return {
-            label: c.name,
-            data: c.costs,
-            borderColor,
-            backgroundColor,
-          };
-        }
-      );
-
-      setMonthLabels(months);
-      setEnergyDataSet(energyDataSet);
-      setCostDataSet(costDataSet);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchCircuitsWithReadingsAndCalculations = async () => {
-    try {
-      const params = new URLSearchParams({
-        espChipId: "demo", // TODO Cambiar por un espChipId asociado a la cuenta del usuario
-      });
-
-      startDate && params.set("startDate", startDate);
-      endDate && params.set("endDate", endDate);
-      selectedCircuits.length > 0 &&
-        params.set("circuits", selectedCircuits.map((c) => c.value).join("|"));
-
-      const res = await fetch(
-        `/api/circuits-readings-calculations?${params.toString()}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Error ${res.status}`);
-      }
-
-      let data = await res.json();
-      data = data.filter(
-        (c: CircuitWithReadingsAndCalculationsDTO) =>
-          !["L1", "L2", "N"].includes(c.name)
-      );
-
-      setTableCircuits(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   useEffect(() => {
     const load = async () => {
-      await fetchCircuits();
-      await fetchCircuitsWithReadingsAndCalculations();
-      await fetchCircuitsWithCalculationsGroupedByMonth();
       setIsLoading(false);
     };
 
     load();
+      
+    const url = process.env.NEXT_PUBLIC_WS_URL
+    const evtSource = new EventSource(url!);
 
-    // Set up interval to fetch data secuencialmente
-    const intervalId = setInterval(async () => {
-      // Referencia para controlar si hay una solicitud en progreso
-      if (isRequestInProgressRef.current) {
-        return;
-      }
+    evtSource.onmessage = (event) => {
+      const data: MqttMessagePayload = JSON.parse(event.data);
+      processWSMessage(data)
+    };
 
-      isRequestInProgressRef.current = true;
-      try {
-        // Ejecutar secuencialmente, esperando que cada una termine
-        // await fetchCircuitsWithCalculationsGroupedByMonth();
-        await fetchCircuitsWithReadingsAndCalculations();
-      } catch (error) {
-        console.error("Error en la actualización periódica:", error);
-      } finally {
-        isRequestInProgressRef.current = false;
-      }
-    }, 1000);
+    return () => evtSource.close();
 
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(intervalId);
-  }, [startDate, endDate, selectedCircuits]);
+  }, [startDate, endDate]);
 
   return (
     <div className="flex flex-col gap-4 p-2">
@@ -277,16 +154,8 @@ export default function Dashboard() {
         <>
           <Filters 
             classes="grid grid-cols-2 gap-4"
-            onClear={() => {setStartDate(''); setEndDate(''); setSelectedCircuits([])}}
+            onClear={() => {setStartDate(''); setEndDate('')}}
           >
-            {/* {selectOptions.length > 0 ? (
-              <MultipleSelect
-                label="Circuito"
-                options={selectOptions}
-                selected={selectedCircuits}
-                onChange={(v) => setSelectedCircuits(v)}
-              />
-            ) : null} */}
             <Input
               id="startDate"
               type="date"
@@ -318,17 +187,26 @@ export default function Dashboard() {
             </div>
             
             */}
-            <div className="col-span-1 md:col-span-12 shadow-md rounded-bl-md rounded-br-md">
+            {/* <div className="col-span-1 md:col-span-6 shadow-md rounded-bl-md rounded-br-md">
               <Table
                 definition={{
-                  name: "Circuito",
-                  doublePolarity: "Doble polaridad",
-                  lastIntensity: "Corriente (A)",
-                  lastVoltage: "Voltaje (V)",
-                  energy: "Consumo (kWh)",
-                  cost: "Costo (USD)",
+                  name           : "Circuito",
+                  doublePolarity : "Doble polaridad",
+                  energy         : "Consumo (kWh)",
+                  cost           : "Costo (USD)",
                 }}
-                data={tableCircuits}
+                data={readings}
+              />
+            </div> */}
+            <div className="col-span-1 md:col-span-6 shadow-md rounded-bl-md rounded-br-md">
+              <Table
+                definition={{
+                  name           : "Circuito",
+                  doublePolarity : "Doble polaridad",
+                  intensity      : "Corriente (A)",
+                  voltage        : "Voltaje (V)"
+                }}
+                data={readings}
               />
             </div>
           </div>

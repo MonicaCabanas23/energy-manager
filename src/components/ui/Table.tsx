@@ -3,7 +3,7 @@ import Input from "./Input";
 
 interface TableProps<T extends Record<string, JSX.Element | string | number | boolean>> {
     definition : { [key in keyof T]: string; };
-    data       : Array<T>;
+    data       : T[];
 }
 
 export default function Table<T extends Record<string, JSX.Element | string | number | boolean>>({
