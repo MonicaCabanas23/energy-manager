@@ -18,8 +18,8 @@ import {
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Line }                               from "react-chartjs-2";
 import { MqttMessagePayload }                 from "@/types/mqtt";
-import { Reading }                            from "@/types/circuits";
 import { PowerConsumptionDTO } from "@/dto/power-consumptions/power-consumption.dto";
+import { ReadingDTO } from "@/dto/readings/reading.dto";
 
 ChartJS.register(
   CategoryScale,
@@ -69,7 +69,7 @@ interface LineGraphDataSet {
 }
 
 export default function Dashboard() {
-  const [readings, setReadings]                 = useState<Reading[]>([]);
+  const [readings, setReadings]                 = useState<ReadingDTO[]>([]);
   const [consumptions, setConsumptions]         = useState<PowerConsumptionDTO[]>([]);
   const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([]);
   const [monthLabels, setMonthLabels]           = useState<string[]>([]);
@@ -123,7 +123,7 @@ export default function Dashboard() {
         return prev;
       } else {
         // Agregar nueva lectura
-        const newReading: Reading = {
+        const newReading: ReadingDTO = {
           name: circuitName,
           doublePolarity: doublePolarity,
           intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : 0,

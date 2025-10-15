@@ -1,6 +1,6 @@
-import { Reading } from "@/types/circuits";
+import { ReadingDTO } from "@/dto/readings/reading.dto";
 
-export const defaultReadings: Reading[] = [
+export const defaultReadings: ReadingDTO[] = [
     {
         name           : 'L1',
         doublePolarity : false,

@@ -1,9 +1,9 @@
 "use client"
-import { Reading } from "@/types/circuits";
+import { ReadingDTO } from "@/dto/readings/reading.dto";
 import { useState } from "react"
 
 interface ElectricalPanelProps {
-  circuits : Reading[];
+  circuits : ReadingDTO[];
   classes ?: string;
 }
 
@@ -20,7 +20,7 @@ export default function ElectricalPanel({
     return circuits
     .filter(c => regex.test(c.name))
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map((c: Reading, index: number)=> (
+    .map((c: ReadingDTO, index: number)=> (
       <div 
         key={index}
         className="min-w-16 h-16 rounded-md bg-gray-800 text-white hover:cursor-pointer transform hover:scale-105 transition-all duration-200 flex flex-col items-center justify-center font-semibold"
@@ -37,7 +37,7 @@ export default function ElectricalPanel({
     return circuits
     .filter(c => regex.test(c.name))
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
-    .map((circuit: Reading, index: number) => (
+    .map((circuit: ReadingDTO, index: number) => (
       <div
         key={index}
         className={`

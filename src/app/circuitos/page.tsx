@@ -2,12 +2,12 @@
 import ElectricalPanel                        from "@/components/electrical-panel/electrical-panel";
 import { CSSProperties, useEffect, useState } from "react";
 import { BarLoader }                          from "react-spinners";
-import { Reading }                            from "@/types/circuits";
 import { MqttMessagePayload }                 from "@/types/mqtt";
 import { defaultReadings }                    from "@/data/default-readings";
+import { ReadingDTO } from "@/dto/readings/reading.dto";
 
 export default function Circuitos() {
-  const [readings, setReadings]   = useState<Reading[]>(defaultReadings);
+  const [readings, setReadings]   = useState<ReadingDTO[]>(defaultReadings);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const override: CSSProperties = {
@@ -40,7 +40,7 @@ export default function Circuitos() {
           });
         } else {
           // Agregar nueva lectura
-          const newReading: Reading = {
+          const newReading: ReadingDTO = {
             name: circuitName,
             doublePolarity: doublePolarity,
             intensity: readingTypeCode === 'corriente' ? Number(data.message) ?? 0 : 0,
