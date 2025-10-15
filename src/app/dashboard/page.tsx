@@ -15,10 +15,11 @@ import {
   LineElement,
   ArcElement,
 }                                             from "chart.js";
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Line }                               from "react-chartjs-2";
 import { MqttMessagePayload }                 from "@/types/mqtt";
 import { Reading }                            from "@/types/circuits";
+import { PowerConsumptionDTO } from "@/dto/power-consumptions/power-consumption.dto";
 
 ChartJS.register(
   CategoryScale,
@@ -69,11 +70,14 @@ interface LineGraphDataSet {
 
 export default function Dashboard() {
   const [readings, setReadings]                 = useState<Reading[]>([]);
+  const [consumptions, setConsumptions]         = useState<PowerConsumptionDTO[]>([]);
   const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([]);
   const [monthLabels, setMonthLabels]           = useState<string[]>([]);
   const [isLoading, setIsLoading]               = useState<boolean>(true);
   const [startDate, setStartDate]               = useState<string>("");
   const [endDate, setEndDate]                   = useState<string>("");
+
+  const isRequestInProgressRef = useRef(false);
 
   const override: CSSProperties = {
     display: "block",
@@ -90,7 +94,8 @@ export default function Dashboard() {
     datasets: energyDataSet,
   };
 
-  function processWSMessage(data: MqttMessagePayload) {
+  function processWSMessage(data: MqttMessagePayload) 
+  {
     const circuitName     = data.circuitName;
     const doublePolarity  = data.doublePolarity;
     const topic           = data.topic;
@@ -129,8 +134,25 @@ export default function Dashboard() {
     });
   }
 
+  async function fetchConsumptions()
+  {
+    try {
+      const params = new URLSearchParams({});
+
+      startDate && params.set("startDate", startDate);
+      endDate   && params.set("endDate", endDate);
+
+      const response = await fetch(`/api/power-consumptions?${params.toString()}`)
+      const data     = await response.json()
+      setConsumptions(data)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   useEffect(() => {
     const load = async () => {
+      await fetchConsumptions()
       setIsLoading(false);
     };
 
@@ -139,12 +161,32 @@ export default function Dashboard() {
     const url = process.env.NEXT_PUBLIC_WS_URL
     const evtSource = new EventSource(url!);
 
+    // SSE
     evtSource.onmessage = (event) => {
       const data: MqttMessagePayload = JSON.parse(event.data);
       processWSMessage(data)
     };
 
-    return () => evtSource.close();
+    // Set up interval to fetch data secuencialmente
+    const intervalId = setInterval(async () => {
+      // Referencia para controlar si hay una solicitud en progreso
+      if (isRequestInProgressRef.current) {
+        return;
+      }
+
+      isRequestInProgressRef.current = true;
+      try {
+        // Ejecutar secuencialmente, esperando que cada una termine
+        await fetchConsumptions();
+      } catch (error) {
+        console.error("Error en la actualización periódica:", error);
+      } finally {
+        isRequestInProgressRef.current = false;
+      }
+    }, 5000);
+
+    // Clean up the interval when the component unmounts
+    return () => {clearInterval(intervalId); evtSource.close();}
 
   }, [startDate, endDate]);
 
@@ -187,17 +229,17 @@ export default function Dashboard() {
             </div>
             
             */}
-            {/* <div className="col-span-1 md:col-span-6 shadow-md rounded-bl-md rounded-br-md">
+            <div className="col-span-1 md:col-span-6 shadow-md rounded-bl-md rounded-br-md">
               <Table
                 definition={{
                   name           : "Circuito",
                   doublePolarity : "Doble polaridad",
-                  energy         : "Consumo (kWh)",
+                  kwh            : "Consumo (kWh)",
                   cost           : "Costo (USD)",
                 }}
-                data={readings}
+                data={consumptions}
               />
-            </div> */}
+            </div>
             <div className="col-span-1 md:col-span-6 shadow-md rounded-bl-md rounded-br-md">
               <Table
                 definition={{

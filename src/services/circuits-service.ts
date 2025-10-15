@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { Panel, Sensor } from "@prisma/client";
 
+export async function listAllCircuits()
+{
+    return await prisma.circuit.findMany()
+}
+
 export async function getCircuitBySensor(sensor: Sensor) 
 {
     try {

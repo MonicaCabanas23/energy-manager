@@ -30,7 +30,7 @@ model Panel {
   updatedAt DateTime @updatedAt
 
   // Relations 
-  user    User     @relation(fields: [userId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
   circuits Circuit[]
 }
 
@@ -73,11 +73,10 @@ model Circuit {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  panel          Panel            @relation(fields: [panelId], references: [id])
-  sensorXCircuit SensorXCircuit[]
-  power          Power[]
-  intensity      Intensity[]
-  voltage        Voltage[]
+  panel            Panel              @relation(fields: [panelId], references: [id])
+  sensorXCircuit   SensorXCircuit[]
+  power            Power[]
+  powerConsumption PowerConsumption[]
 }
 
 model Power {
@@ -90,22 +89,15 @@ model Power {
   circuit Circuit @relation(fields: [circuitId], references: [id])
 }
 
-model Intensity {
+model PowerConsumption {
   id        Int      @id @default(autoincrement())
   circuitId Int
-  value     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  circuit Circuit @relation(fields: [circuitId], references: [id])
-}
-
-model Voltage {
-  id        Int      @id @default(autoincrement())
-  circuitId Int
-  value     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  kwh       Float
+  cost      Float
+  hour      Int
+  day       Int
+  month     Int
+  timestamp DateTime
 
   circuit Circuit @relation(fields: [circuitId], references: [id])
 }

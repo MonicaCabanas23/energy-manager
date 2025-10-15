@@ -3,6 +3,7 @@ import { createPower }                          from "./power-service";
 import { getCircuitByName, getCircuitBySensor } from "./circuits-service";
 import { MqttMessagePayload }                   from "@/types/mqtt";
 import { getSensorByCode }                      from "./sensor-service";
+import { synchronizePowerConsumption } from "./power-consumption-service";
 
 export default function subscribe(
   onMessageCallback?: (data: MqttMessagePayload) => void
@@ -56,6 +57,9 @@ export default function subscribe(
           circuitId : circuit.id,
           value     : Number(message.toString()) ?? 0,
         });
+
+        // Actualiza histórico de consumo en PowerConsumption
+        await synchronizePowerConsumption()
       }
     }
 
