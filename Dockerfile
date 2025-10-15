@@ -35,6 +35,7 @@ ARG MQTT_USERNAME
 ARG MQTT_PASSWORD
 ARG MQTT_TOPICS
 ARG NEXT_PUBLIC_SOCKET_URL
+ARG NEXT_PUBLIC_WS_URL
 
 # Establecer variables de entorno para el proceso de compilación
 ENV APP_BASE_URL=${APP_BASE_URL}
@@ -51,6 +52,7 @@ ENV MQTT_USERNAME=${MQTT_USERNAME}
 ENV MQTT_PASSWORD=${MQTT_PASSWORD}
 ENV MQTT_TOPICS=${MQTT_TOPICS}
 ENV NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
+ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 
 # Copiar archivos de dependencias y configuración primero
 COPY --from=deps /app/node_modules ./node_modules
