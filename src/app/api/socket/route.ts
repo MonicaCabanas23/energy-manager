@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import subscribe from "@/services/mqtt-subscriber-service";
 import { MqttMessagePayload } from "@/types/mqtt";
 import { NextRequest } from "next/server";
