@@ -52,16 +52,30 @@ export async function listPowerConsumptionGroupedByCircuit(startDate?: string, e
             where = { timestamp: { lte: (new Date(endDate)).toISOString() } };
         }
 
-        const data = await prisma.powerConsumption.groupBy({
+        const consumptionData = await prisma.powerConsumption.groupBy({
             by: ['circuitId'],
             where,
             _sum: {
                 kwh: true,
                 cost: true
             }
-        })
+        })  
 
-        return data
+        const circuits = await prisma.circuit.findMany({
+            select: { id: true, name: true, doublePolarity: true }
+        });
+
+        const merged = circuits.map(circuit => {
+        const found = consumptionData.find(c => c.circuitId === circuit.id);
+        return {
+            name           : circuit.name,
+            doublePolarity : circuit.doublePolarity,
+            kwh            : found?._sum.kwh   ?? 0,
+            cost           : found?._sum.cost ?? 0
+        };
+        });
+
+        return merged;
     } catch (error) {
         throw new Error('Error fetching power consumption')
     }

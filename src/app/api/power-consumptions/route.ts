@@ -21,17 +21,12 @@ export async function GET(
         }
 
         const mapped = data.map((d) => {
-            const circuit = circuits.find((c) => c.id === d.circuitId)
-
-            if(circuit) {
-                return PowerConsumptionDTO.parse({
-                    name           : circuit.name,
-                    doublePolarity : circuit.doublePolarity,
-                    kwh            : d._sum.kwh ? Math.trunc(d._sum.kwh * 10000) / 10000 : 0,
-                    cost           : d._sum.cost ? Math.trunc(d._sum.cost * 10000) / 10000 : 0
-                })
-            }
-
+            return PowerConsumptionDTO.parse({
+                name           : d.name,
+                doublePolarity : d.doublePolarity,
+                kwh            : d.kwh ? Math.trunc(d.kwh * 10000) / 10000 : 0,
+                cost           : d.cost ? Math.trunc(d.cost * 10000) / 10000 : 0
+            })
             return null
         })
         .filter(Boolean)

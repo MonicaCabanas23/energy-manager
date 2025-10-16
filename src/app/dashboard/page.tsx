@@ -146,7 +146,7 @@ export default function Dashboard() {
 
       const response = await fetch(`/api/power-consumptions?${params.toString()}`)
       const data     = await response.json()
-      setConsumptions(data)
+      setConsumptions(data.filter((d: PowerConsumptionDTO) => !excludedReadings.includes(d.name)))
     } catch (error) {
       console.error(error)
     }
