@@ -24,8 +24,8 @@ export async function GET(
             return PowerConsumptionDTO.parse({
                 name           : d.name,
                 doublePolarity : d.doublePolarity,
-                kwh            : d.kwh ? Math.trunc(d.kwh * 10000) / 10000 * 1000 : 0,
-                cost           : d.cost ? Math.trunc(d.cost * 10000) / 10000 * 1000 : 0
+                kwh            : d.kwh ? Math.round(d.kwh  * 1000 * 10000) / 10000 : 0,
+                cost           : d.cost ? Math.round(d.cost  * 1000 * 10000) / 10000 : 0
             })
             return null
         })
