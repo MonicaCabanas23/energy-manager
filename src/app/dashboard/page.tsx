@@ -141,8 +141,15 @@ export default function Dashboard() {
     try {
       const params = new URLSearchParams({});
 
-      startDate && params.set("startDate", startDate);
-      endDate   && params.set("endDate", endDate);
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00-06:00`);
+        params.set("startDate", start.toISOString());
+      }
+
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:00-06:00`);
+        params.set("endDate", end.toISOString());
+      }
 
       const response = await fetch(`/api/power-consumptions?${params.toString()}`)
       const data     = await response.json()

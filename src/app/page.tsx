@@ -57,7 +57,7 @@ export default async function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12">
             Características principales
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex flex-wrap items-center justify-center gap-8">
             {/* Feature 1 */}
             <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition">
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
@@ -68,13 +68,13 @@ export default async function Home() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition">
+            {/* <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition">
               <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
                 <FaChartLine className="text-2xl text-teal-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Análisis detallado</h3>
               <p className="text-gray-600">Gráficos y reportes para entender tus patrones de consumo</p>
-            </div>
+            </div> */}
 
             {/* Feature 3 */}
             <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition">
