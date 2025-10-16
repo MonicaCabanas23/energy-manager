@@ -4,7 +4,7 @@ import { CSSProperties, useEffect, useState } from "react";
 import { BarLoader }                          from "react-spinners";
 import { MqttMessagePayload }                 from "@/types/mqtt";
 import { defaultReadings }                    from "@/data/default-readings";
-import { ReadingDTO } from "@/dto/readings/reading.dto";
+import { ReadingDTO }                         from "@/dto/readings/reading.dto";
 
 export default function Circuitos() {
   const [readings, setReadings]   = useState<ReadingDTO[]>(defaultReadings);

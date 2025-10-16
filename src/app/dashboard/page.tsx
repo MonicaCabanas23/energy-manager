@@ -1,9 +1,9 @@
 "use client";
 
-import Filters                                from "@/components/ui/Filters";
-import Input                                  from "@/components/ui/Input";
-import Table                                  from "@/components/ui/Table";
-import { BarLoader }                          from "react-spinners";
+import Filters                                        from "@/components/ui/Filters";
+import Input                                          from "@/components/ui/Input";
+import Table                                          from "@/components/ui/Table";
+import { BarLoader }                                  from "react-spinners";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,12 +14,13 @@ import {
   PointElement,
   LineElement,
   ArcElement,
-}                                             from "chart.js";
+}                                                     from "chart.js";
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { Line }                               from "react-chartjs-2";
-import { MqttMessagePayload }                 from "@/types/mqtt";
-import { PowerConsumptionDTO } from "@/dto/power-consumptions/power-consumption.dto";
-import { ReadingDTO } from "@/dto/readings/reading.dto";
+import { Line }                                       from "react-chartjs-2";
+import { MqttMessagePayload }                         from "@/types/mqtt";
+import { PowerConsumptionDTO }                        from "@/dto/power-consumptions/power-consumption.dto";
+import { ReadingDTO }                                 from "@/dto/readings/reading.dto";
+import { defaultReadings }                            from "@/data/default-readings";
 
 ChartJS.register(
   CategoryScale,
@@ -58,6 +59,8 @@ const costOptions = {
   },
 };
 
+const excludedReadings = ['L1', 'L2', 'N']
+
 interface Option {
   value: string;
   label: string;
@@ -69,7 +72,7 @@ interface LineGraphDataSet {
 }
 
 export default function Dashboard() {
-  const [readings, setReadings]                 = useState<ReadingDTO[]>([]);
+  const [readings, setReadings]                 = useState<ReadingDTO[]>(defaultReadings.filter((r) => !excludedReadings.includes(r.name)));
   const [consumptions, setConsumptions]         = useState<PowerConsumptionDTO[]>([]);
   const [energyDataSet, setEnergyDataSet]       = useState<LineGraphDataSet[]>([]);
   const [monthLabels, setMonthLabels]           = useState<string[]>([]);
@@ -101,7 +104,6 @@ export default function Dashboard() {
     const topic           = data.topic;
     const parts           = topic.split("/")
     const readingTypeCode = parts[parts.length - 2]
-    const excludedCircuits = ['L1', 'L2', 'N']
 
     setReadings((prev) => {
       // Verificar si ya existe la lectura
@@ -119,7 +121,7 @@ export default function Dashboard() {
           }
           return r;
         });
-      } else if(!exists && excludedCircuits.includes(circuitName)) {
+      } else if(!exists && excludedReadings.includes(circuitName)) {
         return prev;
       } else {
         // Agregar nueva lectura
